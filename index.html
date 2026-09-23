@@ -333,6 +333,38 @@
   .modal-error{ color:var(--danger); font-size:.8rem; font-weight:700; margin-top:8px; display:none; }
   .modal-error.show{ display:block; }
 
+  .user-badge{
+    display:flex; align-items:center; gap:8px;
+    font-size:.85rem; font-weight:700;
+    padding:6px 12px 6px 6px; border-radius:100px; border:1px solid var(--border); background:var(--surface-2);
+  }
+  .user-badge .avatar{
+    width:24px; height:24px; border-radius:50%; background:var(--accent); color:var(--accent-ink);
+    display:flex; align-items:center; justify-content:center; font-size:.72rem; font-weight:800; flex-shrink:0;
+  }
+  .user-badge button{ background:none; border:none; color:var(--text-dim); cursor:pointer; display:flex; padding:2px; }
+  .user-badge button svg{ width:14px; height:14px; }
+
+  .chat-card{ display:flex; flex-direction:column; height:min(70vh,640px); padding:0; overflow:hidden; }
+  .chat-list{ flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:10px; padding:18px; }
+  .chat-msg{ max-width:78%; display:flex; flex-direction:column; gap:3px; }
+  .chat-msg.own{ align-self:flex-end; align-items:flex-end; }
+  .chat-msg.other{ align-self:flex-start; align-items:flex-start; }
+  .chat-msg-name{ font-size:.72rem; font-weight:800; color:var(--text-dim); padding:0 4px; }
+  .chat-bubble{ padding:10px 14px; border-radius:15px; font-size:.9rem; font-weight:500; overflow-wrap:break-word; white-space:pre-wrap; }
+  .chat-msg.other .chat-bubble{ background:var(--surface-2); border:1px solid var(--border); border-bottom-left-radius:4px; }
+  .chat-msg.own .chat-bubble{ background:var(--accent); color:var(--accent-ink); border-bottom-right-radius:4px; }
+  .chat-msg-time{ font-size:.66rem; color:var(--text-dim); padding:0 4px; }
+  .chat-input-row{ display:flex; gap:10px; padding:14px 16px; border-top:1px solid var(--border); background:var(--surface); }
+  .chat-input-row input{ flex:1; }
+  .chat-send{
+    background:var(--accent); color:var(--accent-ink); border:none; border-radius:10px;
+    width:42px; flex-shrink:0; display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  .chat-send svg{ width:18px; height:18px; }
+
+  #loginBackdrop .modal-box{ max-width:380px; }
+
   footer{ text-align:center; padding:26px; color:var(--text-dim); font-size:.76rem; }
 </style>
 </head>
@@ -347,6 +379,11 @@
     </div>
   </div>
   <div class="topbar-right">
+    <span class="user-badge" id="userBadge">
+      <span class="avatar" id="userAvatar">?</span>
+      <span id="userNameLabel">Invitado</span>
+      <button id="changeNameBtn" aria-label="Cambiar nombre"><i data-lucide="pencil"></i></button>
+    </span>
     <span class="sync-badge local" id="syncBadge"><span class="sync-dot"></span>Local</span>
     <button class="lock-toggle" id="lockToggle" aria-label="Modo edición">
       <span class="dot"><i data-lucide="lock" id="lockIcon"></i></span>
@@ -479,6 +516,20 @@
       <div class="task-list" id="avisosList" style="gap:12px;"></div>
     </section>
 
+    <section class="page" id="page-chat" data-page="chat">
+      <div class="section-head">
+        <h2>Chat de clase</h2>
+        <p>En tiempo real — se ve tu nombre en cada mensaje</p>
+      </div>
+      <div class="card chat-card">
+        <div class="chat-list" id="chatList"></div>
+        <form class="chat-input-row" id="chatForm">
+          <input type="text" id="chatInput" placeholder="Escribe un mensaje…" autocomplete="off" required>
+          <button type="submit" class="chat-send" aria-label="Enviar"><i data-lucide="send"></i></button>
+        </form>
+      </div>
+    </section>
+
   </main>
 
   <nav class="index-nav" id="indexNav" aria-label="Índice de páginas">
@@ -488,11 +539,25 @@
     <button class="index-link" data-target="enlaces"><i data-lucide="link-2"></i>Enlaces</button>
     <button class="index-link" data-target="notas"><i data-lucide="calculator"></i>Notas</button>
     <button class="index-link" data-target="avisos"><i data-lucide="megaphone"></i>Avisos</button>
+    <button class="index-link" data-target="chat"><i data-lucide="message-circle"></i>Chat</button>
   </nav>
 
 </div>
 
 <footer>Tus tareas y avisos se sincronizan en tiempo real. Tus notas quedan solo en este navegador.</footer>
+
+<div class="modal-backdrop" id="loginBackdrop">
+  <div class="modal-box">
+    <h3>¿Cómo te llamas?</h3>
+    <p>Tu nombre aparecerá junto a tus mensajes en el chat y los avisos que publiques.</p>
+    <input type="text" id="loginNameInput" placeholder="Tu nombre" maxlength="24">
+    <p class="modal-error" id="loginError">Escribe un nombre.</p>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="loginCancel" style="display:none;">Cancelar</button>
+      <button class="btn-add" id="loginSubmit">Entrar</button>
+    </div>
+  </div>
+</div>
 
 <div class="modal-backdrop" id="modalBackdrop">
   <div class="modal-box">
@@ -531,6 +596,62 @@
     try{ localStorage.setItem('panel-theme', savedTheme); }catch(e){}
     applyTheme(savedTheme);
   });
+
+  /* ================= USUARIO (nombre para el chat / avisos) ================= */
+  let CLIENT_ID = '';
+  try{
+    CLIENT_ID = localStorage.getItem('panel-clientid') || '';
+    if(!CLIENT_ID){
+      CLIENT_ID = Date.now().toString(36) + Math.random().toString(36).slice(2);
+      localStorage.setItem('panel-clientid', CLIENT_ID);
+    }
+  }catch(e){ CLIENT_ID = 'anon-' + Math.random().toString(36).slice(2); }
+
+  let currentUsername = '';
+  try{ currentUsername = localStorage.getItem('panel-username') || ''; }catch(e){}
+
+  const userBadge = document.getElementById('userBadge');
+  const userAvatar = document.getElementById('userAvatar');
+  const userNameLabel = document.getElementById('userNameLabel');
+  const changeNameBtn = document.getElementById('changeNameBtn');
+  const loginBackdrop = document.getElementById('loginBackdrop');
+  const loginNameInput = document.getElementById('loginNameInput');
+  const loginError = document.getElementById('loginError');
+  const loginSubmit = document.getElementById('loginSubmit');
+  const loginCancel = document.getElementById('loginCancel');
+
+  function applyUserUI(){
+    if(currentUsername){
+      userNameLabel.textContent = currentUsername;
+      userAvatar.textContent = currentUsername.trim().slice(0,1).toUpperCase();
+    } else {
+      userNameLabel.textContent = 'Invitado';
+      userAvatar.textContent = '?';
+    }
+  }
+  applyUserUI();
+
+  function openLogin(isChange){
+    loginError.classList.remove('show');
+    loginNameInput.value = isChange ? currentUsername : '';
+    loginCancel.style.display = isChange ? 'inline-flex' : 'none';
+    loginBackdrop.classList.add('open');
+    loginNameInput.focus();
+  }
+  function closeLogin(){ loginBackdrop.classList.remove('open'); }
+  function submitLogin(){
+    const name = loginNameInput.value.trim();
+    if(!name){ loginError.textContent = 'Escribe un nombre.'; loginError.classList.add('show'); return; }
+    currentUsername = name.slice(0,24);
+    try{ localStorage.setItem('panel-username', currentUsername); }catch(e){}
+    applyUserUI();
+    closeLogin();
+  }
+  loginSubmit.addEventListener('click', submitLogin);
+  loginNameInput.addEventListener('keydown', function(e){ if(e.key === 'Enter') submitLogin(); });
+  loginCancel.addEventListener('click', closeLogin);
+  changeNameBtn.addEventListener('click', function(){ openLogin(true); });
+  if(!currentUsername) openLogin(false);
 
   /* ================= ADMIN / EDIT MODE =================
      Contraseña simple a nivel de interfaz (no es seguridad real: cualquiera
@@ -709,9 +830,10 @@
   }
 
   const firebaseUsable = firebaseConfig.apiKey && firebaseConfig.apiKey !== 'TU_API_KEY' && window.firebase;
-  let tasksRef = null, avisosRef = null;
+  let tasksRef = null, avisosRef = null, chatRef = null;
   let tasks = [];
   let avisos = [];
+  let chatMsgs = [];
 
   function loadLocal(key){ try{ return JSON.parse(localStorage.getItem(key)) || []; }catch(e){ return []; } }
   function saveLocal(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){} }
@@ -737,16 +859,26 @@
         saveLocal('panel-avisos', avisos);
         renderAvisos();
       }, function(err){ console.error('Firebase avisos error', err); });
+
+      chatRef = firebase.database().ref('chat');
+      chatRef.limitToLast(200).on('value', function(snapshot){
+        const val = snapshot.val() || {};
+        chatMsgs = Object.keys(val).map(function(id){ return Object.assign({id:id}, val[id]); });
+        saveLocal('panel-chat', chatMsgs);
+        renderChat();
+      }, function(err){ console.error('Firebase chat error', err); });
     }catch(e){
       console.error('Firebase: no se pudo inicializar', e);
-      tasksRef = null; avisosRef = null;
+      tasksRef = null; avisosRef = null; chatRef = null;
       tasks = loadLocal('panel-tasks');
       avisos = loadLocal('panel-avisos');
+      chatMsgs = loadLocal('panel-chat');
       setSyncStatus('local', 'Local');
     }
   } else {
     tasks = loadLocal('panel-tasks');
     avisos = loadLocal('panel-avisos');
+    chatMsgs = loadLocal('panel-chat');
     setSyncStatus('local', 'Local');
   }
 
@@ -789,6 +921,14 @@
       avisos = avisos.filter(function(x){ return x.id !== id; });
       saveLocal('panel-avisos', avisos);
       renderAvisos();
+    }
+  }
+  function sendChatMsg(msg){
+    if(chatRef){ chatRef.push(msg); }
+    else{
+      msg.id = Date.now().toString(36) + Math.random().toString(36).slice(2);
+      chatMsgs.push(msg); saveLocal('panel-chat', chatMsgs);
+      renderChat();
     }
   }
 
@@ -1173,6 +1313,55 @@
     avisoText.value = '';
   });
   renderAvisos();
+
+  /* ================= CHAT ================= */
+  const chatForm = document.getElementById('chatForm');
+  const chatInput = document.getElementById('chatInput');
+  const chatList = document.getElementById('chatList');
+
+  function fmtTime(ts){
+    const d = new Date(ts || Date.now());
+    return d.toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
+  }
+  function renderChat(){
+    const wasNearBottom = (chatList.scrollHeight - chatList.scrollTop - chatList.clientHeight) < 80;
+    chatList.innerHTML = '';
+    const sorted = chatMsgs.slice().sort((a,b) => (a.ts||0) - (b.ts||0));
+    if(sorted.length === 0){
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.innerHTML = '<i data-lucide="message-circle"></i><div>Todavía no hay mensajes. ¡Escribe el primero!</div>';
+      chatList.appendChild(empty);
+      if(window.lucide) lucide.createIcons();
+      return;
+    }
+    sorted.forEach(m => {
+      const isOwn = m.clientId && m.clientId === CLIENT_ID;
+      const wrap = document.createElement('div');
+      wrap.className = 'chat-msg ' + (isOwn ? 'own' : 'other');
+      const nameEl = document.createElement('div');
+      nameEl.className = 'chat-msg-name';
+      nameEl.textContent = isOwn ? 'Tú' : (m.name || 'Anónimo');
+      const bubble = document.createElement('div');
+      bubble.className = 'chat-bubble';
+      bubble.textContent = m.text;
+      const timeEl = document.createElement('div');
+      timeEl.className = 'chat-msg-time';
+      timeEl.textContent = fmtTime(m.ts);
+      wrap.appendChild(nameEl); wrap.appendChild(bubble); wrap.appendChild(timeEl);
+      chatList.appendChild(wrap);
+    });
+    if(wasNearBottom) chatList.scrollTop = chatList.scrollHeight;
+  }
+  chatForm.addEventListener('submit', function(e){
+    e.preventDefault();
+    const text = chatInput.value.trim();
+    if(!text) return;
+    if(!currentUsername){ openLogin(false); return; }
+    sendChatMsg({ name: currentUsername, clientId: CLIENT_ID, text: text, ts: Date.now() });
+    chatInput.value = '';
+  });
+  renderChat();
 
   if(window.lucide) lucide.createIcons();
   else document.addEventListener('DOMContentLoaded', function(){ if(window.lucide) lucide.createIcons(); });
