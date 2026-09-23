@@ -3,11 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Panel SMR</title>
+<title>Panel Académico</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
   :root{
     --bg:#eef0f4; --surface:#ffffff; --surface-2:#e7e9ef; --border:#d4d8e1;
@@ -74,6 +76,18 @@
     display:flex; align-items:center; justify-content:center; color:var(--accent-ink);
   }
   .theme-toggle svg{ width:14px; height:14px; }
+
+  .sync-badge{
+    display:flex; align-items:center; gap:6px;
+    font-size:.76rem; font-weight:700; color:var(--text-dim);
+    padding:6px 12px; border-radius:100px; border:1px solid var(--border); background:var(--surface-2);
+  }
+  .sync-dot{ width:8px; height:8px; border-radius:50%; background:var(--text-dim); flex-shrink:0; }
+  .sync-badge.live{ color:var(--ipe-t,var(--text)); }
+  .sync-badge.live .sync-dot{ background:#2f9457; animation:sync-pulse 1.6s ease-in-out infinite; }
+  .sync-badge.error .sync-dot{ background:var(--danger); }
+  .sync-badge.connecting .sync-dot{ background:var(--seg); }
+  @keyframes sync-pulse{ 0%,100%{ opacity:1; } 50%{ opacity:.35; } }
 
   .layout{
     max-width:1280px; margin:0 auto; padding:clamp(18px,3.5vw,36px);
@@ -260,10 +274,15 @@
       <span>Horario · Calendario · Tareas</span>
     </div>
   </div>
-  <button class="theme-toggle" id="themeToggle" aria-label="Cambiar tema">
-    <span class="dot"><i data-lucide="sun" id="themeIcon"></i></span>
-    <span id="themeLabel">Claro</span>
-  </button>
+  <div style="display:flex; align-items:center; gap:10px;">
+    <span class="sync-badge local" id="syncBadge">
+      <span class="sync-dot"></span>Local
+    </span>
+    <button class="theme-toggle" id="themeToggle" aria-label="Cambiar tema">
+      <span class="dot"><i data-lucide="sun" id="themeIcon"></i></span>
+      <span id="themeLabel">Claro</span>
+    </button>
+  </div>
 </header>
 
 <div class="layout">
@@ -452,13 +471,102 @@
   setInterval(renderSchedule, 60000);
 
   const STORE_KEY = 'panel-tasks';
-  function loadTasks(){
+
+  // === Sincronización en tiempo real (Firebase Realtime Database) ===
+  // 1. Crea un proyecto gratuito en https://console.firebase.google.com
+  // 2. Activa "Realtime Database" (modo de prueba o con las reglas indicadas en las instrucciones)
+  // 3. Sustituye los valores de abajo por los de tu proyecto (Configuración del proyecto > tus apps > SDK)
+  // Mientras dejes "TU_API_KEY" tal cual, la app funciona en modo local (solo en este navegador).
+  const firebaseConfig = {
+    apiKey: "AIzaSyDlRIpLcfYZjVwNSlLm92BCnq6fwQvfHZc",
+    authDomain: "smr-7e04e.firebaseapp.com",
+    databaseURL: "https://smr-7e04e-default-rtdb.firebaseio.com",
+    projectId: "smr-7e04e",
+    storageBucket: "smr-7e04e.firebasestorage.app",
+    messagingSenderId: "593806394827",
+    appId: "1:593806394827:web:383c4f0e0e23f21016e24e"
+  };
+
+  let tasks = [];
+  let fbRef = null;
+  const syncBadge = document.getElementById('syncBadge');
+
+  function setSyncStatus(status, label){
+    if(!syncBadge) return;
+    syncBadge.className = 'sync-badge ' + status;
+    syncBadge.innerHTML = '<span class="sync-dot"></span>' + label;
+  }
+
+  function loadLocalTasks(){
     try{ return JSON.parse(localStorage.getItem(STORE_KEY)) || []; }catch(e){ return []; }
   }
-  function saveTasks(tasks){
-    try{ localStorage.setItem(STORE_KEY, JSON.stringify(tasks)); }catch(e){}
+  function saveLocalTasks(t){
+    try{ localStorage.setItem(STORE_KEY, JSON.stringify(t)); }catch(e){}
   }
-  let tasks = loadTasks();
+
+  const firebaseUsable = firebaseConfig.apiKey && firebaseConfig.apiKey !== 'TU_API_KEY' && window.firebase;
+
+  if(firebaseUsable){
+    try{
+      firebase.initializeApp(firebaseConfig);
+      fbRef = firebase.database().ref('tasks');
+      setSyncStatus('connecting', 'Conectando…');
+      fbRef.on('value', function(snapshot){
+        const val = snapshot.val() || {};
+        tasks = Object.keys(val).map(function(id){
+          return Object.assign({id: id}, val[id]);
+        });
+        saveLocalTasks(tasks);
+        setSyncStatus('live', 'En vivo');
+        renderTasks();
+        renderCalendar();
+      }, function(err){
+        console.error('Firebase: error de sincronización', err);
+        setSyncStatus('error', 'Sin conexión');
+      });
+    }catch(e){
+      console.error('Firebase: no se pudo inicializar', e);
+      fbRef = null;
+      tasks = loadLocalTasks();
+      setSyncStatus('local', 'Local');
+    }
+  } else {
+    tasks = loadLocalTasks();
+    setSyncStatus('local', 'Local');
+  }
+
+  function addTask(task){
+    if(fbRef){
+      fbRef.push(task);
+    } else {
+      task.id = Date.now().toString(36) + Math.random().toString(36).slice(2);
+      tasks.push(task);
+      saveLocalTasks(tasks);
+      renderTasks();
+      renderCalendar();
+    }
+  }
+  function updateTask(id, changes){
+    if(fbRef){
+      fbRef.child(id).update(changes);
+    } else {
+      const t = tasks.find(function(x){ return x.id === id; });
+      if(t) Object.assign(t, changes);
+      saveLocalTasks(tasks);
+      renderTasks();
+    }
+  }
+  function removeTask(id){
+    if(fbRef){
+      fbRef.child(id).remove();
+    } else {
+      tasks = tasks.filter(function(x){ return x.id !== id; });
+      saveLocalTasks(tasks);
+      renderTasks();
+      renderCalendar();
+    }
+  }
+
   let currentFilter = 'todos';
 
   const calLabel = document.getElementById('calLabel');
@@ -572,9 +680,7 @@
       check.setAttribute('aria-label','Marcar como completado');
       check.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>';
       check.addEventListener('click', function(){
-        t.done = !t.done;
-        saveTasks(tasks);
-        renderTasks();
+        updateTask(t.id, {done: !t.done});
       });
 
       const body = document.createElement('div');
@@ -600,10 +706,7 @@
       del.setAttribute('aria-label','Eliminar');
       del.innerHTML = '<i data-lucide="trash-2"></i>';
       del.addEventListener('click', function(){
-        tasks = tasks.filter(x => x.id !== t.id);
-        saveTasks(tasks);
-        renderTasks();
-        renderCalendar();
+        removeTask(t.id);
       });
 
       item.appendChild(check);
@@ -619,17 +722,13 @@
     const title = taskTitle.value.trim();
     const date = taskDateInput.value;
     if(!title || !date) return;
-    tasks.push({
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+    addTask({
       title: title,
       type: taskType.value,
       date: date,
       done: false
     });
-    saveTasks(tasks);
     taskTitle.value = '';
-    renderTasks();
-    renderCalendar();
   });
 
   document.querySelectorAll('.filter-btn').forEach(btn => {
