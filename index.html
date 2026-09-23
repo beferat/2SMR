@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Panel Panel 2SMR</title>
+<title>Panel Académico</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&display=swap" rel="stylesheet">
@@ -14,7 +14,7 @@
   :root{
     --bg:#eef0f4; --surface:#ffffff; --surface-2:#e7e9ef; --border:#d4d8e1;
     --text:#14161c; --text-dim:#575d6c; --accent:#0c7d70; --accent-ink:#ffffff;
-    --danger:#c0392b; --today-ring:#0c7d70;
+    --danger:#c0392b; --warn:#c9861a; --today-ring:#0c7d70;
     --ing:#7b52b8; --ing-t:#ffffff;
     --sr:#d85f52; --sr-t:#ffffff;
     --seg:#f0ad00; --seg-t:#2a1e00;
@@ -29,7 +29,7 @@
   [data-theme="dark"]{
     --bg:#0f1116; --surface:#181b22; --surface-2:#1f232c; --border:#2b303b;
     --text:#f1f2f6; --text-dim:#a0a6b5; --accent:#3fd8c4; --accent-ink:#062521;
-    --danger:#f0776a; --today-ring:#3fd8c4;
+    --danger:#f0776a; --warn:#e8b74a; --today-ring:#3fd8c4;
     --ing:#9b7bd6; --ing-t:#1c1030;
     --sr:#e8836f; --sr-t:#2b0f08;
     --seg:#f5c23c; --seg-t:#2a1e00;
@@ -51,9 +51,14 @@
   }
   ::selection{ background:var(--accent); color:var(--accent-ink); }
 
+  body:not(.edit-mode) .admin-only{ display:none !important; }
+  body.edit-mode .readonly-hint{ display:none !important; }
+  .readonly-hint{ font-size:.8rem; color:var(--text-dim); display:flex; align-items:center; gap:6px; }
+  .readonly-hint svg{ width:15px; height:15px; }
+
   .topbar{
     position:sticky; top:0; top:env(safe-area-inset-top,0px); z-index:30;
-    display:flex; align-items:center; justify-content:space-between;
+    display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
     padding:16px clamp(16px,4vw,40px);
     background:var(--surface); border-bottom:1px solid var(--border);
   }
@@ -65,17 +70,20 @@
   .brand h1{ font-size:1.1rem; font-weight:800; letter-spacing:-.01em; }
   .brand span{ display:block; font-size:.75rem; color:var(--text-dim); font-weight:500; }
 
-  .theme-toggle{
+  .topbar-right{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+
+  .theme-toggle, .lock-toggle{
     display:flex; align-items:center; gap:8px;
     background:var(--surface-2); border:1px solid var(--border);
     border-radius:100px; padding:6px 14px 6px 6px; cursor:pointer;
     color:var(--text); font-family:inherit; font-size:.85rem; font-weight:600;
   }
-  .theme-toggle .dot{
+  .theme-toggle .dot, .lock-toggle .dot{
     width:24px; height:24px; border-radius:50%; background:var(--accent);
     display:flex; align-items:center; justify-content:center; color:var(--accent-ink);
   }
-  .theme-toggle svg{ width:14px; height:14px; }
+  .theme-toggle svg, .lock-toggle svg{ width:14px; height:14px; }
+  .lock-toggle.unlocked .dot{ background:var(--danger); }
 
   .sync-badge{
     display:flex; align-items:center; gap:6px;
@@ -83,11 +91,21 @@
     padding:6px 12px; border-radius:100px; border:1px solid var(--border); background:var(--surface-2);
   }
   .sync-dot{ width:8px; height:8px; border-radius:50%; background:var(--text-dim); flex-shrink:0; }
-  .sync-badge.live{ color:var(--ipe-t,var(--text)); }
   .sync-badge.live .sync-dot{ background:#2f9457; animation:sync-pulse 1.6s ease-in-out infinite; }
   .sync-badge.error .sync-dot{ background:var(--danger); }
   .sync-badge.connecting .sync-dot{ background:var(--seg); }
   @keyframes sync-pulse{ 0%,100%{ opacity:1; } 50%{ opacity:.35; } }
+
+  .countdown-bar{
+    max-width:1280px; margin:16px auto 0; padding:14px clamp(16px,3.5vw,36px);
+    display:flex; align-items:center; gap:10px; font-size:.92rem; font-weight:700;
+    border-radius:0;
+  }
+  @media(min-width:640px){ .countdown-bar{ margin:16px clamp(16px,3.5vw,36px) 0; border-radius:12px; } }
+  .countdown-bar svg{ width:19px; height:19px; flex-shrink:0; }
+  .countdown-bar.neutral{ background:var(--surface-2); color:var(--text-dim); border:1px solid var(--border); }
+  .countdown-bar.warn{ background:var(--warn); color:#2a1e00; }
+  .countdown-bar.danger{ background:var(--danger); color:#fff; }
 
   .layout{
     max-width:1280px; margin:0 auto; padding:clamp(18px,3.5vw,36px);
@@ -95,10 +113,7 @@
   }
   @media(min-width:900px){ .layout{ grid-template-columns:1fr 220px; align-items:start; } }
 
-  nav.index-nav{
-    display:flex; gap:8px; overflow-x:auto; padding-bottom:4px;
-    order:-1;
-  }
+  nav.index-nav{ display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; order:-1; }
   @media(min-width:900px){
     nav.index-nav{
       order:2; flex-direction:column; gap:6px; position:sticky;
@@ -178,26 +193,25 @@
   .legend-item{ display:flex; align-items:center; gap:7px; font-size:.8rem; font-weight:600; color:var(--text-dim); }
   .legend-swatch{ width:13px; height:13px; border-radius:4px; flex-shrink:0; }
 
-  .grid-two{ display:grid; grid-template-columns:1fr; gap:20px; }
-  @media(min-width:760px){ .grid-two{ grid-template-columns:minmax(300px,380px) 1fr; align-items:start; } }
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:22px; }
 
-  .card{ background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:20px; }
-
-  .cal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
-  .cal-head strong{ font-size:1rem; font-weight:800; text-transform:capitalize; }
+  /* ---- big calendar ---- */
+  .cal-card-lg{ max-width:820px; width:100%; margin:0 auto; }
+  .cal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+  .cal-head strong{ font-size:1.2rem; font-weight:800; text-transform:capitalize; }
   .icon-btn{
-    width:34px; height:34px; border-radius:9px; border:1px solid var(--border);
+    width:38px; height:38px; border-radius:10px; border:1px solid var(--border);
     background:var(--surface-2); color:var(--text); display:flex; align-items:center; justify-content:center;
     cursor:pointer;
   }
   .icon-btn:hover{ background:var(--border); }
-  .icon-btn svg{ width:17px; height:17px; }
+  .icon-btn svg{ width:18px; height:18px; }
 
-  .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:5px; }
-  .cal-dow{ text-align:center; font-size:.7rem; font-weight:800; color:var(--text-dim); padding-bottom:6px; text-transform:uppercase; }
+  .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:8px; }
+  .cal-dow{ text-align:center; font-size:.76rem; font-weight:800; color:var(--text-dim); padding-bottom:8px; text-transform:uppercase; }
   .cal-day{
     aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
-    border-radius:10px; font-size:.86rem; font-weight:700; cursor:pointer; position:relative;
+    border-radius:12px; font-size:1.05rem; font-weight:700; cursor:pointer; position:relative;
     background:transparent; border:1px solid transparent; color:var(--text);
   }
   .cal-day:hover{ background:var(--surface-2); }
@@ -205,19 +219,23 @@
   .cal-day.muted:hover{ background:transparent; }
   .cal-day.today{ border-color:var(--accent); }
   .cal-day.selected{ background:var(--accent); color:var(--accent-ink); }
-  .cal-dots{ display:flex; gap:2px; position:absolute; bottom:5px; }
-  .cal-dots span{ width:4px; height:4px; border-radius:50%; background:var(--accent); }
+  .cal-dots{ display:flex; gap:3px; position:absolute; bottom:7px; }
+  .cal-dots span{ width:5px; height:5px; border-radius:50%; background:var(--accent); }
   .cal-day.selected .cal-dots span{ background:var(--accent-ink); }
 
-  .task-form{ display:grid; grid-template-columns:1fr; gap:10px; margin-bottom:18px; }
-  @media(min-width:520px){ .task-form{ grid-template-columns:2fr 1fr 1fr auto; align-items:end; } }
+  .tasks-panel{ display:grid; grid-template-columns:1fr; gap:20px; }
+  @media(min-width:760px){ .tasks-panel{ grid-template-columns:320px 1fr; align-items:start; } }
+
+  .task-form{ display:grid; grid-template-columns:1fr; gap:10px; }
   .field{ display:flex; flex-direction:column; gap:5px; }
   .field label{ font-size:.72rem; font-weight:800; color:var(--text-dim); text-transform:uppercase; letter-spacing:.05em; }
-  input, select{
+  input, select, textarea{
     font-family:inherit; font-size:.9rem; padding:10px 12px;
     border:1px solid var(--border); border-radius:10px; background:var(--surface-2); color:var(--text);
+    width:100%;
   }
-  input:focus, select:focus, button:focus-visible, .icon-btn:focus-visible, .cal-day:focus-visible, .index-link:focus-visible{
+  textarea{ resize:vertical; min-height:70px; }
+  input:focus, select:focus, textarea:focus, button:focus-visible, .icon-btn:focus-visible, .cal-day:focus-visible, .index-link:focus-visible{
     outline:2px solid var(--accent); outline-offset:1px;
   }
   .btn-add{
@@ -227,8 +245,13 @@
   }
   .btn-add:hover{ opacity:.9; }
   .btn-add svg{ width:16px; height:16px; }
+  .btn-ghost{
+    background:var(--surface-2); color:var(--text); border:1px solid var(--border); border-radius:10px;
+    padding:9px 16px; font-family:inherit; font-weight:700; font-size:.85rem; cursor:pointer;
+  }
+  .btn-ghost:hover{ background:var(--border); }
 
-  .filters{ display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+  .filters{ display:flex; gap:8px; margin:14px 0; flex-wrap:wrap; }
   .filter-btn{
     background:var(--surface-2); border:1px solid var(--border); color:var(--text-dim);
     padding:7px 14px; border-radius:100px; font-family:inherit; font-size:.8rem; font-weight:800; cursor:pointer;
@@ -261,6 +284,55 @@
   .empty-state{ text-align:center; padding:32px 10px; color:var(--text-dim); font-size:.88rem; }
   .empty-state svg{ width:28px; height:28px; margin-bottom:8px; opacity:.6; }
 
+  /* ---- enlaces ---- */
+  .link-group{ display:flex; flex-direction:column; gap:12px; }
+  .link-group h3{ font-size:.95rem; font-weight:800; }
+  .link-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:12px; }
+  .link-card{
+    display:flex; align-items:center; gap:12px; padding:14px 16px;
+    border:1px solid var(--border); border-radius:13px; background:var(--surface);
+    text-decoration:none; color:var(--text); font-weight:700; font-size:.88rem;
+  }
+  .link-card:hover{ border-color:var(--accent); background:var(--surface-2); }
+  .link-card .ic{
+    width:36px; height:36px; border-radius:9px; background:var(--surface-2); flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; color:var(--accent);
+  }
+  .link-card .ic svg{ width:18px; height:18px; }
+
+  /* ---- notas ---- */
+  .notas-row{ display:grid; grid-template-columns:1fr 90px 90px 110px 36px; gap:8px; align-items:center; margin-bottom:8px; }
+  .notas-row .rowlabel{ font-size:.7rem; color:var(--text-dim); font-weight:800; text-transform:uppercase; letter-spacing:.04em; }
+  .notas-row-del{ background:none; border:none; color:var(--text-dim); cursor:pointer; display:flex; justify-content:center; }
+  .notas-row-del:hover{ color:var(--danger); }
+  .notas-row-del svg{ width:17px; height:17px; }
+  .target-radio{ width:18px; height:18px; accent-color:var(--accent); }
+  .notas-result{
+    margin-top:16px; padding:16px; border-radius:12px; font-size:.94rem; font-weight:700;
+    background:var(--surface-2); border:1px solid var(--border);
+  }
+  .notas-result.ok{ background:color-mix(in srgb, var(--ipe) 20%, var(--surface-2)); }
+  .notas-result.bad{ background:color-mix(in srgb, var(--danger) 18%, var(--surface-2)); }
+
+  /* ---- avisos ---- */
+  .aviso-item{ padding:14px 16px; border:1px solid var(--border); border-radius:13px; background:var(--surface-2); }
+  .aviso-text{ font-size:.92rem; font-weight:600; white-space:pre-wrap; overflow-wrap:break-word; }
+  .aviso-meta{ display:flex; justify-content:space-between; align-items:center; margin-top:8px; }
+  .aviso-time{ font-size:.74rem; color:var(--text-dim); font-weight:700; }
+
+  /* ---- modal ---- */
+  .modal-backdrop{
+    position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:100;
+    display:none; align-items:center; justify-content:center; padding:20px;
+  }
+  .modal-backdrop.open{ display:flex; }
+  .modal-box{ background:var(--surface); border-radius:16px; padding:24px; max-width:360px; width:100%; border:1px solid var(--border); }
+  .modal-box h3{ font-size:1.1rem; font-weight:800; margin-bottom:8px; }
+  .modal-box p{ font-size:.86rem; color:var(--text-dim); margin-bottom:14px; }
+  .modal-actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:14px; }
+  .modal-error{ color:var(--danger); font-size:.8rem; font-weight:700; margin-top:8px; display:none; }
+  .modal-error.show{ display:block; }
+
   footer{ text-align:center; padding:26px; color:var(--text-dim); font-size:.76rem; }
 </style>
 </head>
@@ -274,16 +346,20 @@
       <span>Horario · Calendario · Tareas</span>
     </div>
   </div>
-  <div style="display:flex; align-items:center; gap:10px;">
-    <span class="sync-badge local" id="syncBadge">
-      <span class="sync-dot"></span>Local
-    </span>
+  <div class="topbar-right">
+    <span class="sync-badge local" id="syncBadge"><span class="sync-dot"></span>Local</span>
+    <button class="lock-toggle" id="lockToggle" aria-label="Modo edición">
+      <span class="dot"><i data-lucide="lock" id="lockIcon"></i></span>
+      <span id="lockLabel">Solo lectura</span>
+    </button>
     <button class="theme-toggle" id="themeToggle" aria-label="Cambiar tema">
       <span class="dot"><i data-lucide="sun" id="themeIcon"></i></span>
       <span id="themeLabel">Claro</span>
     </button>
   </div>
 </header>
+
+<div class="countdown-bar neutral" id="countdownBar"></div>
 
 <div class="layout">
 
@@ -307,18 +383,19 @@
 
     <section class="page" id="page-calendario" data-page="calendario">
       <div class="section-head"><h2>Calendario y tareas</h2></div>
-      <div class="grid-two">
-        <div class="card">
-          <div class="cal-head">
-            <button class="icon-btn" id="prevMonth" aria-label="Mes anterior"><i data-lucide="chevron-left"></i></button>
-            <strong id="calLabel"></strong>
-            <button class="icon-btn" id="nextMonth" aria-label="Mes siguiente"><i data-lucide="chevron-right"></i></button>
-          </div>
-          <div class="cal-grid" id="calGrid"></div>
-        </div>
 
+      <div class="card cal-card-lg">
+        <div class="cal-head">
+          <button class="icon-btn" id="prevMonth" aria-label="Mes anterior"><i data-lucide="chevron-left"></i></button>
+          <strong id="calLabel"></strong>
+          <button class="icon-btn" id="nextMonth" aria-label="Mes siguiente"><i data-lucide="chevron-right"></i></button>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+
+      <div class="tasks-panel">
         <div class="card">
-          <form class="task-form" id="taskForm">
+          <form class="task-form admin-only" id="taskForm">
             <div class="field">
               <label for="taskTitle">Descripción</label>
               <input type="text" id="taskTitle" placeholder="Ej. Práctica de SOR" required>
@@ -336,16 +413,70 @@
             </div>
             <button type="submit" class="btn-add"><i data-lucide="plus"></i>Añadir</button>
           </form>
+          <p class="readonly-hint"><i data-lucide="lock"></i>Modo solo lectura. Desbloquea con el candado de arriba para añadir tareas.</p>
 
           <div class="filters">
             <button class="filter-btn active" data-filter="todos">Todos</button>
             <button class="filter-btn" data-filter="tarea">Solo tareas</button>
             <button class="filter-btn" data-filter="examen">Solo exámenes</button>
           </div>
+        </div>
 
+        <div class="card">
           <div class="task-list" id="taskList"></div>
         </div>
       </div>
+    </section>
+
+    <section class="page" id="page-enlaces" data-page="enlaces">
+      <div class="section-head">
+        <h2>Enlaces rápidos</h2>
+        <p>Edita el array LINKS en el código para poner tus URLs reales</p>
+      </div>
+      <div id="linksWrap"></div>
+    </section>
+
+    <section class="page" id="page-notas" data-page="notas">
+      <div class="section-head">
+        <h2>Calculadora de notas</h2>
+        <p>Solo tú ves esto — se guarda únicamente en tu navegador</p>
+      </div>
+      <div class="card">
+        <div class="notas-row">
+          <span class="rowlabel">Concepto</span>
+          <span class="rowlabel">Peso %</span>
+          <span class="rowlabel">Nota</span>
+          <span class="rowlabel">Calcular</span>
+          <span></span>
+        </div>
+        <div id="notasRows"></div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:6px; align-items:end;">
+          <button class="btn-ghost" id="notasAddRow"><i data-lucide="plus" style="width:14px;height:14px;"></i> Añadir concepto</button>
+          <div class="field" style="max-width:160px;">
+            <label for="notasThreshold">Nota para aprobar</label>
+            <input type="number" id="notasThreshold" min="0" max="10" step="0.1" value="5">
+          </div>
+        </div>
+        <div class="notas-result" id="notasResult"></div>
+      </div>
+    </section>
+
+    <section class="page" id="page-avisos" data-page="avisos">
+      <div class="section-head">
+        <h2>Tablón de avisos</h2>
+        <p>Sincronizado en tiempo real con la clase</p>
+      </div>
+      <div class="card">
+        <form class="task-form admin-only" id="avisoForm">
+          <div class="field">
+            <label for="avisoText">Nuevo aviso</label>
+            <textarea id="avisoText" placeholder="Ej. La entrega se pasa al viernes" required></textarea>
+          </div>
+          <button type="submit" class="btn-add"><i data-lucide="megaphone"></i>Publicar aviso</button>
+        </form>
+        <p class="readonly-hint"><i data-lucide="lock"></i>Modo solo lectura. Desbloquea con el candado de arriba para publicar avisos.</p>
+      </div>
+      <div class="task-list" id="avisosList" style="gap:12px;"></div>
     </section>
 
   </main>
@@ -354,22 +485,38 @@
     <span class="index-title">Índice</span>
     <button class="index-link active" data-target="horario"><i data-lucide="calendar-clock"></i>Horario</button>
     <button class="index-link" data-target="calendario"><i data-lucide="calendar-days"></i>Calendario</button>
+    <button class="index-link" data-target="enlaces"><i data-lucide="link-2"></i>Enlaces</button>
+    <button class="index-link" data-target="notas"><i data-lucide="calculator"></i>Notas</button>
+    <button class="index-link" data-target="avisos"><i data-lucide="megaphone"></i>Avisos</button>
   </nav>
 
 </div>
 
-<footer>Tus datos se guardan localmente en este navegador.</footer>
+<footer>Tus tareas y avisos se sincronizan en tiempo real. Tus notas quedan solo en este navegador.</footer>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal-box">
+    <h3>Modo edición</h3>
+    <p>Introduce la contraseña para poder añadir o borrar tareas, exámenes y avisos.</p>
+    <input type="password" id="modalPasswordInput" placeholder="Contraseña">
+    <p class="modal-error" id="modalError">Contraseña incorrecta.</p>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="modalCancel">Cancelar</button>
+      <button class="btn-add" id="modalSubmit">Entrar</button>
+    </div>
+  </div>
+</div>
 
 <script>
 (function(){
   "use strict";
   try{
 
+  /* ================= THEME ================= */
   const root = document.documentElement;
   const themeToggle = document.getElementById('themeToggle');
   const themeIcon = document.getElementById('themeIcon');
   const themeLabel = document.getElementById('themeLabel');
-
   function applyTheme(t){
     if(t === 'dark'){ root.setAttribute('data-theme','dark'); themeLabel.textContent='Oscuro'; }
     else { root.removeAttribute('data-theme'); themeLabel.textContent='Claro'; }
@@ -385,6 +532,83 @@
     applyTheme(savedTheme);
   });
 
+  /* ================= ADMIN / EDIT MODE =================
+     Contraseña simple a nivel de interfaz (no es seguridad real: cualquiera
+     con conocimientos técnicos podría escribir directamente en Firebase).
+     Cámbiala aquí: */
+  const ADMIN_PASSWORD = "smr2025";
+
+  const body = document.body;
+  const lockToggle = document.getElementById('lockToggle');
+  const lockIcon = document.getElementById('lockIcon');
+  const lockLabel = document.getElementById('lockLabel');
+  const modalBackdrop = document.getElementById('modalBackdrop');
+  const modalPasswordInput = document.getElementById('modalPasswordInput');
+  const modalError = document.getElementById('modalError');
+  const modalSubmit = document.getElementById('modalSubmit');
+  const modalCancel = document.getElementById('modalCancel');
+
+  let editMode = false;
+  try{ editMode = sessionStorage.getItem('panel-edit') === '1'; }catch(e){}
+
+  function applyEditModeUI(){
+    body.classList.toggle('edit-mode', editMode);
+    lockToggle.classList.toggle('unlocked', editMode);
+    lockLabel.textContent = editMode ? 'Modo edición' : 'Solo lectura';
+    lockIcon.setAttribute('data-lucide', editMode ? 'unlock' : 'lock');
+    if(window.lucide) lucide.createIcons();
+  }
+  function openModal(){
+    modalError.classList.remove('show');
+    modalPasswordInput.value = '';
+    modalBackdrop.classList.add('open');
+    modalPasswordInput.focus();
+  }
+  function closeModal(){ modalBackdrop.classList.remove('open'); }
+
+  lockToggle.addEventListener('click', function(){
+    if(editMode){
+      editMode = false;
+      try{ sessionStorage.removeItem('panel-edit'); }catch(e){}
+      applyEditModeUI();
+    } else {
+      openModal();
+    }
+  });
+  modalCancel.addEventListener('click', closeModal);
+  modalBackdrop.addEventListener('click', function(e){ if(e.target === modalBackdrop) closeModal(); });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeModal(); });
+  function trySubmitPassword(){
+    if(modalPasswordInput.value === ADMIN_PASSWORD){
+      editMode = true;
+      try{ sessionStorage.setItem('panel-edit','1'); }catch(e){}
+      applyEditModeUI();
+      closeModal();
+    } else {
+      modalError.classList.add('show');
+    }
+  }
+  modalSubmit.addEventListener('click', trySubmitPassword);
+  modalPasswordInput.addEventListener('keydown', function(e){ if(e.key === 'Enter') trySubmitPassword(); });
+  applyEditModeUI();
+
+  /* ================= PAGE NAV (index derecho) ================= */
+  function registerNav(){
+    const navLinks = document.querySelectorAll('.index-link');
+    function goToPage(id){
+      document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.dataset.page === id));
+      navLinks.forEach(l => l.classList.toggle('active', l.dataset.target === id));
+      try{ localStorage.setItem('panel-page', id); }catch(e){}
+      try{ if(history.replaceState) history.replaceState(null, '', '#' + id); }catch(e){}
+    }
+    navLinks.forEach(link => link.addEventListener('click', () => goToPage(link.dataset.target)));
+    let startPage = 'horario';
+    try{ startPage = (location.hash && location.hash.slice(1)) || localStorage.getItem('panel-page') || 'horario'; }catch(e){}
+    if(!document.getElementById('page-' + startPage)) startPage = 'horario';
+    goToPage(startPage);
+  }
+
+  /* ================= HORARIO ================= */
   const SLOTS = [
     {start:"8:15",  end:"9:15",  label:"8:15 - 9:15"},
     {start:"9:15",  end:"10:15", label:"9:15 - 10:15"},
@@ -407,7 +631,6 @@
     "Proyecto":"c-pro", "HLC":"c-hlc"
   };
   const LEGEND_ORDER = ["Inglés","Servicios en red","Seguridad","Ap.Web","SOR","Ipe II","Proyecto","HLC"];
-
   function toMinutes(hm){ const [h,m]=hm.split(':').map(Number); return h*60+m; }
 
   function renderLegend(){
@@ -431,7 +654,6 @@
     const now = new Date();
     const curDay = now.getDay();
     const curMin = now.getHours()*60 + now.getMinutes();
-
     let dataRow = 0;
     SLOTS.forEach(slot => {
       const tr = document.createElement('tr');
@@ -439,16 +661,13 @@
       tTd.className = 'time-cell';
       tTd.textContent = slot.label;
       tr.appendChild(tTd);
-
       if(slot.recess){
         tr.className = 'rec-row';
         const td = document.createElement('td');
         td.className = 'subj-cell rec c-rec';
         td.colSpan = 5;
         td.textContent = 'RECREO';
-        if(curDay>=1 && curDay<=5 && curMin>=toMinutes(slot.start) && curMin<toMinutes(slot.end)){
-          td.classList.add('now');
-        }
+        if(curDay>=1 && curDay<=5 && curMin>=toMinutes(slot.start) && curMin<toMinutes(slot.end)) td.classList.add('now');
         tr.appendChild(td);
       } else {
         for(let d=1; d<=5; d++){
@@ -456,9 +675,7 @@
           const td = document.createElement('td');
           td.className = 'subj-cell ' + (COLOR_CLASS[subj] || '');
           td.textContent = subj;
-          if(d===curDay && curMin>=toMinutes(slot.start) && curMin<toMinutes(slot.end)){
-            td.classList.add('now');
-          }
+          if(d===curDay && curMin>=toMinutes(slot.start) && curMin<toMinutes(slot.end)) td.classList.add('now');
           tr.appendChild(td);
         }
         dataRow++;
@@ -470,13 +687,10 @@
   renderLegend();
   setInterval(renderSchedule, 60000);
 
-  const STORE_KEY = 'panel-tasks';
-
-  // === Sincronización en tiempo real (Firebase Realtime Database) ===
-  // 1. Crea un proyecto gratuito en https://console.firebase.google.com
-  // 2. Activa "Realtime Database" (modo de prueba o con las reglas indicadas en las instrucciones)
-  // 3. Sustituye los valores de abajo por los de tu proyecto (Configuración del proyecto > tus apps > SDK)
-  // Mientras dejes "TU_API_KEY" tal cual, la app funciona en modo local (solo en este navegador).
+  /* ================= FIREBASE (tareas + avisos en tiempo real) =================
+     1. https://console.firebase.google.com > tu proyecto > Realtime Database > Crear base de datos.
+     2. En "Reglas" pon: {"rules":{"tasks":{".read":true,".write":true},"avisos":{".read":true,".write":true}}}
+     3. Ya tienes tu configuración rellena abajo. */
   const firebaseConfig = {
     apiKey: "AIzaSyDlRIpLcfYZjVwNSlLm92BCnq6fwQvfHZc",
     authDomain: "smr-7e04e.firebaseapp.com",
@@ -487,88 +701,128 @@
     appId: "1:593806394827:web:383c4f0e0e23f21016e24e"
   };
 
-  let tasks = [];
-  let fbRef = null;
   const syncBadge = document.getElementById('syncBadge');
-
   function setSyncStatus(status, label){
     if(!syncBadge) return;
     syncBadge.className = 'sync-badge ' + status;
     syncBadge.innerHTML = '<span class="sync-dot"></span>' + label;
   }
 
-  function loadLocalTasks(){
-    try{ return JSON.parse(localStorage.getItem(STORE_KEY)) || []; }catch(e){ return []; }
-  }
-  function saveLocalTasks(t){
-    try{ localStorage.setItem(STORE_KEY, JSON.stringify(t)); }catch(e){}
-  }
-
   const firebaseUsable = firebaseConfig.apiKey && firebaseConfig.apiKey !== 'TU_API_KEY' && window.firebase;
+  let tasksRef = null, avisosRef = null;
+  let tasks = [];
+  let avisos = [];
+
+  function loadLocal(key){ try{ return JSON.parse(localStorage.getItem(key)) || []; }catch(e){ return []; } }
+  function saveLocal(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){} }
 
   if(firebaseUsable){
     try{
       firebase.initializeApp(firebaseConfig);
-      fbRef = firebase.database().ref('tasks');
+      tasksRef = firebase.database().ref('tasks');
+      avisosRef = firebase.database().ref('avisos');
       setSyncStatus('connecting', 'Conectando…');
-      fbRef.on('value', function(snapshot){
+
+      tasksRef.on('value', function(snapshot){
         const val = snapshot.val() || {};
-        tasks = Object.keys(val).map(function(id){
-          return Object.assign({id: id}, val[id]);
-        });
-        saveLocalTasks(tasks);
+        tasks = Object.keys(val).map(function(id){ return Object.assign({id:id}, val[id]); });
+        saveLocal('panel-tasks', tasks);
         setSyncStatus('live', 'En vivo');
-        renderTasks();
-        renderCalendar();
-      }, function(err){
-        console.error('Firebase: error de sincronización', err);
-        setSyncStatus('error', 'Sin conexión');
-      });
+        renderTasks(); renderCalendar(); renderCountdown();
+      }, function(err){ console.error('Firebase tasks error', err); setSyncStatus('error','Sin conexión'); });
+
+      avisosRef.on('value', function(snapshot){
+        const val = snapshot.val() || {};
+        avisos = Object.keys(val).map(function(id){ return Object.assign({id:id}, val[id]); });
+        saveLocal('panel-avisos', avisos);
+        renderAvisos();
+      }, function(err){ console.error('Firebase avisos error', err); });
     }catch(e){
       console.error('Firebase: no se pudo inicializar', e);
-      fbRef = null;
-      tasks = loadLocalTasks();
+      tasksRef = null; avisosRef = null;
+      tasks = loadLocal('panel-tasks');
+      avisos = loadLocal('panel-avisos');
       setSyncStatus('local', 'Local');
     }
   } else {
-    tasks = loadLocalTasks();
+    tasks = loadLocal('panel-tasks');
+    avisos = loadLocal('panel-avisos');
     setSyncStatus('local', 'Local');
   }
 
   function addTask(task){
-    if(fbRef){
-      fbRef.push(task);
-    } else {
+    if(tasksRef){ tasksRef.push(task); }
+    else{
       task.id = Date.now().toString(36) + Math.random().toString(36).slice(2);
-      tasks.push(task);
-      saveLocalTasks(tasks);
-      renderTasks();
-      renderCalendar();
+      tasks.push(task); saveLocal('panel-tasks', tasks);
+      renderTasks(); renderCalendar(); renderCountdown();
     }
   }
   function updateTask(id, changes){
-    if(fbRef){
-      fbRef.child(id).update(changes);
-    } else {
+    if(tasksRef){ tasksRef.child(id).update(changes); }
+    else{
       const t = tasks.find(function(x){ return x.id === id; });
       if(t) Object.assign(t, changes);
-      saveLocalTasks(tasks);
-      renderTasks();
+      saveLocal('panel-tasks', tasks);
+      renderTasks(); renderCountdown();
     }
   }
   function removeTask(id){
-    if(fbRef){
-      fbRef.child(id).remove();
-    } else {
+    if(tasksRef){ tasksRef.child(id).remove(); }
+    else{
       tasks = tasks.filter(function(x){ return x.id !== id; });
-      saveLocalTasks(tasks);
-      renderTasks();
-      renderCalendar();
+      saveLocal('panel-tasks', tasks);
+      renderTasks(); renderCalendar(); renderCountdown();
+    }
+  }
+  function addAviso(aviso){
+    if(avisosRef){ avisosRef.push(aviso); }
+    else{
+      aviso.id = Date.now().toString(36) + Math.random().toString(36).slice(2);
+      avisos.push(aviso); saveLocal('panel-avisos', avisos);
+      renderAvisos();
+    }
+  }
+  function removeAviso(id){
+    if(avisosRef){ avisosRef.child(id).remove(); }
+    else{
+      avisos = avisos.filter(function(x){ return x.id !== id; });
+      saveLocal('panel-avisos', avisos);
+      renderAvisos();
     }
   }
 
-  let currentFilter = 'todos';
+  /* ================= COUNTDOWN ================= */
+  function nearestExam(){
+    const now = new Date();
+    return tasks
+      .filter(function(t){ return t.type === 'examen' && !t.done && t.date; })
+      .map(function(t){ return Object.assign({}, t, {when: new Date(t.date + 'T23:59:59')}); })
+      .filter(function(t){ return t.when >= now; })
+      .sort(function(a,b){ return a.when - b.when; })[0] || null;
+  }
+  function renderCountdown(){
+    const bar = document.getElementById('countdownBar');
+    const exam = nearestExam();
+    if(!exam){
+      bar.className = 'countdown-bar neutral';
+      bar.innerHTML = '<i data-lucide="calendar-check"></i><span>No hay exámenes próximos registrados.</span>';
+      if(window.lucide) lucide.createIcons();
+      return;
+    }
+    const diffMs = exam.when - new Date();
+    const totalHours = diffMs / 3600000;
+    const days = Math.max(0, Math.floor(totalHours / 24));
+    const hours = Math.max(0, Math.floor(totalHours % 24));
+    let level = 'neutral';
+    if(totalHours <= 24) level = 'danger'; else if(totalHours <= 48) level = 'warn';
+    bar.className = 'countdown-bar ' + level;
+    bar.innerHTML = '<i data-lucide="alarm-clock"></i><span><strong>' + exam.title + '</strong> — quedan ' + days + ' d ' + hours + ' h</span>';
+    if(window.lucide) lucide.createIcons();
+  }
+  setInterval(renderCountdown, 60000);
 
+  /* ================= CALENDARIO ================= */
   const calLabel = document.getElementById('calLabel');
   const calGrid = document.getElementById('calGrid');
   const taskDateInput = document.getElementById('taskDate');
@@ -576,32 +830,24 @@
   let viewYear = today.getFullYear();
   let viewMonth = today.getMonth();
   let selectedDate = null;
-
   const MONTHS = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
   const DOWS = ["L","M","X","J","V","S","D"];
-
-  function fmtDate(y,m,d){
-    return y + '-' + String(m+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
-  }
+  function fmtDate(y,m,d){ return y + '-' + String(m+1).padStart(2,'0') + '-' + String(d).padStart(2,'0'); }
 
   function renderCalendar(){
     calLabel.textContent = MONTHS[viewMonth] + ' ' + viewYear;
     calGrid.innerHTML = '';
     DOWS.forEach(d => {
       const el = document.createElement('div');
-      el.className = 'cal-dow';
-      el.textContent = d;
+      el.className = 'cal-dow'; el.textContent = d;
       calGrid.appendChild(el);
     });
-
     const firstDay = new Date(viewYear, viewMonth, 1);
     let startOffset = firstDay.getDay() - 1;
     if(startOffset < 0) startOffset = 6;
     const daysInMonth = new Date(viewYear, viewMonth+1, 0).getDate();
     const daysInPrevMonth = new Date(viewYear, viewMonth, 0).getDate();
-
     const eventDates = new Set(tasks.map(t => t.date));
-
     for(let i=0; i<startOffset; i++){
       const el = document.createElement('div');
       el.className = 'cal-day muted';
@@ -611,15 +857,9 @@
     for(let d=1; d<=daysInMonth; d++){
       const el = document.createElement('div');
       const dateStr = fmtDate(viewYear, viewMonth, d);
-      el.className = 'cal-day';
-      el.tabIndex = 0;
-      el.textContent = d;
-      if(dateStr === fmtDate(today.getFullYear(), today.getMonth(), today.getDate())){
-        el.classList.add('today');
-      }
-      if(dateStr === selectedDate){
-        el.classList.add('selected');
-      }
+      el.className = 'cal-day'; el.tabIndex = 0; el.textContent = d;
+      if(dateStr === fmtDate(today.getFullYear(), today.getMonth(), today.getDate())) el.classList.add('today');
+      if(dateStr === selectedDate) el.classList.add('selected');
       if(eventDates.has(dateStr)){
         const dots = document.createElement('div');
         dots.className = 'cal-dots';
@@ -637,31 +877,29 @@
     const trailing = (7 - (totalCells % 7)) % 7;
     for(let i=1; i<=trailing; i++){
       const el = document.createElement('div');
-      el.className = 'cal-day muted';
-      el.textContent = i;
+      el.className = 'cal-day muted'; el.textContent = i;
       calGrid.appendChild(el);
     }
   }
   document.getElementById('prevMonth').addEventListener('click', function(){
-    viewMonth--; if(viewMonth<0){ viewMonth=11; viewYear--; }
-    renderCalendar();
+    viewMonth--; if(viewMonth<0){ viewMonth=11; viewYear--; } renderCalendar();
   });
   document.getElementById('nextMonth').addEventListener('click', function(){
-    viewMonth++; if(viewMonth>11){ viewMonth=0; viewYear++; }
-    renderCalendar();
+    viewMonth++; if(viewMonth>11){ viewMonth=0; viewYear++; } renderCalendar();
   });
   renderCalendar();
 
+  /* ================= TAREAS ================= */
   const taskForm = document.getElementById('taskForm');
   const taskList = document.getElementById('taskList');
   const taskTitle = document.getElementById('taskTitle');
   const taskType = document.getElementById('taskType');
+  let currentFilter = 'todos';
 
   function renderTasks(){
     taskList.innerHTML = '';
     let visible = tasks.filter(t => currentFilter === 'todos' || t.type === currentFilter);
     visible = visible.slice().sort((a,b) => (a.date||'').localeCompare(b.date||''));
-
     if(visible.length === 0){
       const empty = document.createElement('div');
       empty.className = 'empty-state';
@@ -670,24 +908,19 @@
       if(window.lucide) lucide.createIcons();
       return;
     }
-
     visible.forEach(t => {
       const item = document.createElement('div');
       item.className = 'task-item' + (t.done ? ' done' : '');
-
       const check = document.createElement('button');
       check.className = 'task-check';
       check.setAttribute('aria-label','Marcar como completado');
       check.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>';
-      check.addEventListener('click', function(){
-        updateTask(t.id, {done: !t.done});
-      });
+      check.addEventListener('click', function(){ updateTask(t.id, {done: !t.done}); });
 
-      const body = document.createElement('div');
-      body.className = 'task-body';
+      const bodyEl = document.createElement('div');
+      bodyEl.className = 'task-body';
       const title = document.createElement('div');
-      title.className = 'task-title';
-      title.textContent = t.title;
+      title.className = 'task-title'; title.textContent = t.title;
       const meta = document.createElement('div');
       meta.className = 'task-meta';
       const tag = document.createElement('span');
@@ -696,22 +929,16 @@
       const dateSpan = document.createElement('span');
       dateSpan.className = 'task-date';
       dateSpan.textContent = t.date ? new Date(t.date+'T00:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'}) : '';
-      meta.appendChild(tag);
-      meta.appendChild(dateSpan);
-      body.appendChild(title);
-      body.appendChild(meta);
+      meta.appendChild(tag); meta.appendChild(dateSpan);
+      bodyEl.appendChild(title); bodyEl.appendChild(meta);
 
       const del = document.createElement('button');
-      del.className = 'task-del';
+      del.className = 'task-del admin-only';
       del.setAttribute('aria-label','Eliminar');
       del.innerHTML = '<i data-lucide="trash-2"></i>';
-      del.addEventListener('click', function(){
-        removeTask(t.id);
-      });
+      del.addEventListener('click', function(){ removeTask(t.id); });
 
-      item.appendChild(check);
-      item.appendChild(body);
-      item.appendChild(del);
+      item.appendChild(check); item.appendChild(bodyEl); item.appendChild(del);
       taskList.appendChild(item);
     });
     if(window.lucide) lucide.createIcons();
@@ -719,18 +946,13 @@
 
   taskForm.addEventListener('submit', function(e){
     e.preventDefault();
+    if(!editMode) return;
     const title = taskTitle.value.trim();
     const date = taskDateInput.value;
     if(!title || !date) return;
-    addTask({
-      title: title,
-      type: taskType.value,
-      date: date,
-      done: false
-    });
+    addTask({ title: title, type: taskType.value, date: date, done: false });
     taskTitle.value = '';
   });
-
   document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', function(){
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -739,24 +961,225 @@
       renderTasks();
     });
   });
-
   renderTasks();
+  renderCountdown();
+
+  /* ================= ENLACES ================= */
+  const LINKS = [
+    { category: "Plataformas del centro", items: [
+      { label: "Séneca", url: "#", icon: "school" },
+      { label: "Moodle / Classroom", url: "#", icon: "laptop" }
+    ]},
+    { category: "Recursos de la clase", items: [
+      { label: "Drive / Mega compartido", url: "#", icon: "folder" },
+      { label: "Chuletas de comandos Linux/Bash", url: "#", icon: "terminal" },
+      { label: "Packet Tracer", url: "#", icon: "network" },
+      { label: "Windows Server", url: "#", icon: "server" }
+    ]}
+  ];
+  function renderLinks(){
+    const wrap = document.getElementById('linksWrap');
+    wrap.innerHTML = '';
+    LINKS.forEach(group => {
+      const g = document.createElement('div');
+      g.className = 'link-group';
+      const h3 = document.createElement('h3'); h3.textContent = group.category;
+      const grid = document.createElement('div'); grid.className = 'link-grid';
+      group.items.forEach(item => {
+        const a = document.createElement('a');
+        a.className = 'link-card';
+        a.href = item.url;
+        a.target = '_blank'; a.rel = 'noopener';
+        if(item.url === '#'){
+          a.addEventListener('click', function(ev){
+            ev.preventDefault();
+            alert('Añade la URL real de "' + item.label + '" en el array LINKS del código.');
+          });
+        }
+        a.innerHTML = '<span class="ic"><i data-lucide="' + item.icon + '"></i></span><span>' + item.label + '</span>';
+        grid.appendChild(a);
+      });
+      g.appendChild(h3); g.appendChild(grid);
+      wrap.appendChild(g);
+    });
+    if(window.lucide) lucide.createIcons();
+  }
+  renderLinks();
+
+  /* ================= NOTAS (privado, localStorage) ================= */
+  const NOTAS_KEY = 'panel-notas';
+  function loadNotas(){
+    try{
+      const raw = JSON.parse(localStorage.getItem(NOTAS_KEY));
+      if(raw && raw.rows && raw.rows.length) return raw;
+    }catch(e){}
+    return { threshold: 5, rows: [
+      { id:'r1', name:'Examen final', weight:40, grade:null, isTarget:true },
+      { id:'r2', name:'Prácticas', weight:30, grade:null, isTarget:false },
+      { id:'r3', name:'Proyecto', weight:20, grade:null, isTarget:false },
+      { id:'r4', name:'Actitud', weight:10, grade:null, isTarget:false }
+    ]};
+  }
+  let notas = loadNotas();
+  function saveNotas(){ try{ localStorage.setItem(NOTAS_KEY, JSON.stringify(notas)); }catch(e){} }
+
+  function renderNotas(){
+    const wrap = document.getElementById('notasRows');
+    wrap.innerHTML = '';
+    notas.rows.forEach(row => {
+      const r = document.createElement('div');
+      r.className = 'notas-row';
+
+      const nameInput = document.createElement('input');
+      nameInput.type = 'text'; nameInput.value = row.name;
+      nameInput.addEventListener('input', function(){ row.name = nameInput.value; saveNotas(); });
+
+      const weightInput = document.createElement('input');
+      weightInput.type = 'number'; weightInput.min = '0'; weightInput.max = '100'; weightInput.value = row.weight;
+      weightInput.addEventListener('input', function(){ row.weight = parseFloat(weightInput.value) || 0; saveNotas(); computeNotas(); });
+
+      const gradeInput = document.createElement('input');
+      gradeInput.type = 'number'; gradeInput.min = '0'; gradeInput.max = '10'; gradeInput.step = '0.1';
+      gradeInput.value = row.grade === null || row.grade === undefined ? '' : row.grade;
+      gradeInput.placeholder = row.isTarget ? '¿?' : '—';
+      gradeInput.disabled = row.isTarget;
+      gradeInput.addEventListener('input', function(){
+        row.grade = gradeInput.value === '' ? null : parseFloat(gradeInput.value);
+        saveNotas(); computeNotas();
+      });
+
+      const radioWrap = document.createElement('div');
+      radioWrap.style.display = 'flex'; radioWrap.style.justifyContent = 'center';
+      const radio = document.createElement('input');
+      radio.type = 'radio'; radio.name = 'notasTarget'; radio.className = 'target-radio';
+      radio.checked = row.isTarget;
+      radio.addEventListener('change', function(){
+        notas.rows.forEach(x => x.isTarget = (x.id === row.id));
+        saveNotas(); renderNotas(); computeNotas();
+      });
+      radioWrap.appendChild(radio);
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'notas-row-del';
+      delBtn.innerHTML = '<i data-lucide="trash-2"></i>';
+      delBtn.addEventListener('click', function(){
+        notas.rows = notas.rows.filter(x => x.id !== row.id);
+        saveNotas(); renderNotas(); computeNotas();
+      });
+
+      r.appendChild(nameInput); r.appendChild(weightInput); r.appendChild(gradeInput);
+      r.appendChild(radioWrap); r.appendChild(delBtn);
+      wrap.appendChild(r);
+    });
+    if(window.lucide) lucide.createIcons();
+  }
+
+  function computeNotas(){
+    const resultEl = document.getElementById('notasResult');
+    const threshold = parseFloat(document.getElementById('notasThreshold').value) || 5;
+    notas.threshold = threshold; saveNotas();
+    const target = notas.rows.find(r => r.isTarget);
+    const totalWeight = notas.rows.reduce((s,r) => s + (r.weight||0), 0);
+    if(!target){
+      resultEl.className = 'notas-result';
+      resultEl.textContent = 'Marca con el botón "Calcular" el concepto cuya nota quieres averiguar.';
+      return;
+    }
+    if(Math.round(totalWeight) !== 100){
+      resultEl.className = 'notas-result bad';
+      resultEl.textContent = 'Los pesos deben sumar 100% (ahora mismo suman ' + totalWeight + '%).';
+      return;
+    }
+    const known = notas.rows.filter(r => !r.isTarget);
+    const missingGrade = known.some(r => r.grade === null || r.grade === undefined || isNaN(r.grade));
+    if(missingGrade){
+      resultEl.className = 'notas-result';
+      resultEl.textContent = 'Rellena la nota de los demás conceptos para calcular "' + target.name + '".';
+      return;
+    }
+    const knownWeighted = known.reduce((s,r) => s + (r.weight/100) * r.grade, 0);
+    const needed = (threshold - knownWeighted) / (target.weight/100);
+    if(needed <= 0){
+      resultEl.className = 'notas-result ok';
+      resultEl.textContent = '¡Ya tienes aprobado (' + threshold + ') aunque saques un 0 en "' + target.name + '"!';
+    } else if(needed > 10){
+      resultEl.className = 'notas-result bad';
+      resultEl.textContent = 'No es posible llegar a un ' + threshold + ' — necesitarías más de un 10 en "' + target.name + '".';
+    } else {
+      resultEl.className = 'notas-result ok';
+      resultEl.textContent = 'Necesitas al menos un ' + needed.toFixed(2) + ' en "' + target.name + '" para llegar a un ' + threshold + '.';
+    }
+  }
+
+  document.getElementById('notasAddRow').addEventListener('click', function(){
+    notas.rows.push({ id: 'r' + Date.now().toString(36), name: 'Nuevo concepto', weight: 0, grade: null, isTarget: false });
+    saveNotas(); renderNotas(); computeNotas();
+  });
+  document.getElementById('notasThreshold').value = notas.threshold || 5;
+  document.getElementById('notasThreshold').addEventListener('input', computeNotas);
+  renderNotas();
+  computeNotas();
+
+  /* ================= AVISOS ================= */
+  const avisoForm = document.getElementById('avisoForm');
+  const avisoText = document.getElementById('avisoText');
+  const avisosList = document.getElementById('avisosList');
+
+  function timeAgo(ts){
+    const diff = Date.now() - ts;
+    const mins = Math.floor(diff/60000);
+    if(mins < 1) return 'ahora mismo';
+    if(mins < 60) return 'hace ' + mins + ' min';
+    const hours = Math.floor(mins/60);
+    if(hours < 24) return 'hace ' + hours + ' h';
+    const days = Math.floor(hours/24);
+    return 'hace ' + days + ' d';
+  }
+
+  function renderAvisos(){
+    avisosList.innerHTML = '';
+    const sorted = avisos.slice().sort((a,b) => (b.ts||0) - (a.ts||0));
+    if(sorted.length === 0){
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.innerHTML = '<i data-lucide="megaphone"></i><div>Todavía no hay avisos.</div>';
+      avisosList.appendChild(empty);
+      if(window.lucide) lucide.createIcons();
+      return;
+    }
+    sorted.forEach(a => {
+      const item = document.createElement('div');
+      item.className = 'aviso-item';
+      const txt = document.createElement('div');
+      txt.className = 'aviso-text'; txt.textContent = a.text;
+      const meta = document.createElement('div');
+      meta.className = 'aviso-meta';
+      const time = document.createElement('span');
+      time.className = 'aviso-time'; time.textContent = timeAgo(a.ts || Date.now());
+      const del = document.createElement('button');
+      del.className = 'task-del admin-only';
+      del.innerHTML = '<i data-lucide="trash-2"></i>';
+      del.addEventListener('click', function(){ removeAviso(a.id); });
+      meta.appendChild(time); meta.appendChild(del);
+      item.appendChild(txt); item.appendChild(meta);
+      avisosList.appendChild(item);
+    });
+    if(window.lucide) lucide.createIcons();
+  }
+  avisoForm.addEventListener('submit', function(e){
+    e.preventDefault();
+    if(!editMode) return;
+    const text = avisoText.value.trim();
+    if(!text) return;
+    addAviso({ text: text, ts: Date.now() });
+    avisoText.value = '';
+  });
+  renderAvisos();
 
   if(window.lucide) lucide.createIcons();
   else document.addEventListener('DOMContentLoaded', function(){ if(window.lucide) lucide.createIcons(); });
 
-  const navLinks = document.querySelectorAll('.index-link');
-  function goToPage(id){
-    document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.dataset.page === id));
-    navLinks.forEach(l => l.classList.toggle('active', l.dataset.target === id));
-    try{ localStorage.setItem('panel-page', id); }catch(e){}
-    try{ if(history.replaceState) history.replaceState(null, '', '#' + id); }catch(e){}
-  }
-  navLinks.forEach(link => link.addEventListener('click', () => goToPage(link.dataset.target)));
-  let startPage = 'horario';
-  try{ startPage = (location.hash && location.hash.slice(1)) || localStorage.getItem('panel-page') || 'horario'; }catch(e){}
-  if(!document.getElementById('page-' + startPage)) startPage = 'horario';
-  goToPage(startPage);
+  registerNav();
 
   }catch(err){
     console.error('Panel Académico: error de inicialización', err);
