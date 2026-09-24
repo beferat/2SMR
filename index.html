@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Panel 2SMR</title>
+<title>Panel Académico</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&display=swap" rel="stylesheet">
@@ -374,7 +374,7 @@
   <div class="brand">
     <div class="mark"><i data-lucide="graduation-cap"></i></div>
     <div>
-      <h1>Panel 2SMR</h1>
+      <h1>Panel Académico</h1>
       <span>Horario · Calendario · Tareas</span>
     </div>
   </div>
@@ -382,7 +382,7 @@
     <span class="user-badge" id="userBadge">
       <span class="avatar" id="userAvatar">?</span>
       <span id="userNameLabel">Invitado</span>
-      <button id="changeNameBtn" aria-label="Cambiar nombre"><i data-lucide="pencil"></i></button>
+      <button id="changeNameBtn" aria-label="Cerrar sesión"><i data-lucide="log-out"></i></button>
     </span>
     <span class="sync-badge local" id="syncBadge"><span class="sync-dot"></span>Local</span>
     <button class="lock-toggle" id="lockToggle" aria-label="Modo edición">
@@ -548,10 +548,17 @@
 
 <div class="modal-backdrop" id="loginBackdrop">
   <div class="modal-box">
-    <h3>¿Cómo te llamas?</h3>
-    <p>Tu nombre aparecerá junto a tus mensajes en el chat y los avisos que publiques.</p>
-    <input type="text" id="loginNameInput" placeholder="Tu nombre" maxlength="24">
-    <p class="modal-error" id="loginError">Escribe un nombre.</p>
+    <h3>Inicia sesión</h3>
+    <p>Usa el usuario y la contraseña que te ha dado la clase.</p>
+    <div class="field" style="margin-bottom:10px;">
+      <label for="loginUserInput">Usuario</label>
+      <input type="text" id="loginUserInput" placeholder="tu_usuario" autocomplete="username">
+    </div>
+    <div class="field">
+      <label for="loginPassInput">Contraseña</label>
+      <input type="password" id="loginPassInput" placeholder="••••••" autocomplete="current-password">
+    </div>
+    <p class="modal-error" id="loginError">Usuario o contraseña incorrectos.</p>
     <div class="modal-actions">
       <button class="btn-ghost" id="loginCancel" style="display:none;">Cancelar</button>
       <button class="btn-add" id="loginSubmit">Entrar</button>
@@ -597,25 +604,40 @@
     applyTheme(savedTheme);
   });
 
-  /* ================= USUARIO (nombre para el chat / avisos) ================= */
-  let CLIENT_ID = '';
-  try{
-    CLIENT_ID = localStorage.getItem('panel-clientid') || '';
-    if(!CLIENT_ID){
-      CLIENT_ID = Date.now().toString(36) + Math.random().toString(36).slice(2);
-      localStorage.setItem('panel-clientid', CLIENT_ID);
-    }
-  }catch(e){ CLIENT_ID = 'anon-' + Math.random().toString(36).slice(2); }
+  /* ================= USUARIOS (usuario + contraseña para el chat / avisos) =================
+     Añade aquí una entrada por cada compañero: la clave es el usuario (en minúsculas),
+     "password" es su contraseña y "name" el nombre que verán los demás.
+     Al igual que la contraseña de edición, esto vive en el código: cualquiera que abra
+     el archivo puede leer esta lista, así que no la uses para nada sensible. */
+  const USERS = {
+    "alumno1": { password: "m1234", name: "mgamfer" },
+    "alumno2": { password: "s1234", name: "smuncon" },
+    "alumno3": { password: "i1234", name: "iramfer" },
+    "alumno4": { password: "m1234", name: "mafalor" },
+    "alumno5": { password: "h1234", name: "hcamcas" },
+    "alumno6": { password: "d1234", name: "dedeadordepanchas" },
+    "alumno7": { password: "", name: "" },
+    "alumno8": { password: "", name: "" },
+    "alumno9": { password: "", name: "" },
+    "alumno10": { password: "", name: "" },
+    "alumno11": { password: "", name: "" },
+    "alumno12": { password: "", name: "" },
+  };
 
   let currentUsername = '';
-  try{ currentUsername = localStorage.getItem('panel-username') || ''; }catch(e){}
+  let currentUserKey = '';
+  try{
+    currentUsername = localStorage.getItem('panel-username') || '';
+    currentUserKey = localStorage.getItem('panel-userkey') || '';
+  }catch(e){}
 
   const userBadge = document.getElementById('userBadge');
   const userAvatar = document.getElementById('userAvatar');
   const userNameLabel = document.getElementById('userNameLabel');
   const changeNameBtn = document.getElementById('changeNameBtn');
   const loginBackdrop = document.getElementById('loginBackdrop');
-  const loginNameInput = document.getElementById('loginNameInput');
+  const loginUserInput = document.getElementById('loginUserInput');
+  const loginPassInput = document.getElementById('loginPassInput');
   const loginError = document.getElementById('loginError');
   const loginSubmit = document.getElementById('loginSubmit');
   const loginCancel = document.getElementById('loginCancel');
@@ -625,7 +647,7 @@
       userNameLabel.textContent = currentUsername;
       userAvatar.textContent = currentUsername.trim().slice(0,1).toUpperCase();
     } else {
-      userNameLabel.textContent = 'Invitado';
+      userNameLabel.textContent = 'Sin sesión';
       userAvatar.textContent = '?';
     }
   }
@@ -633,25 +655,40 @@
 
   function openLogin(isChange){
     loginError.classList.remove('show');
-    loginNameInput.value = isChange ? currentUsername : '';
+    loginUserInput.value = isChange ? currentUserKey : '';
+    loginPassInput.value = '';
     loginCancel.style.display = isChange ? 'inline-flex' : 'none';
     loginBackdrop.classList.add('open');
-    loginNameInput.focus();
+    loginUserInput.focus();
   }
   function closeLogin(){ loginBackdrop.classList.remove('open'); }
+  function logout(){
+    currentUsername = ''; currentUserKey = '';
+    try{ localStorage.removeItem('panel-username'); localStorage.removeItem('panel-userkey'); }catch(e){}
+    applyUserUI();
+    openLogin(false);
+  }
   function submitLogin(){
-    const name = loginNameInput.value.trim();
-    if(!name){ loginError.textContent = 'Escribe un nombre.'; loginError.classList.add('show'); return; }
-    currentUsername = name.slice(0,24);
-    try{ localStorage.setItem('panel-username', currentUsername); }catch(e){}
+    const key = loginUserInput.value.trim().toLowerCase();
+    const pass = loginPassInput.value;
+    const user = USERS[key];
+    if(!user || user.password !== pass){
+      loginError.textContent = 'Usuario o contraseña incorrectos.';
+      loginError.classList.add('show');
+      return;
+    }
+    currentUsername = user.name;
+    currentUserKey = key;
+    try{ localStorage.setItem('panel-username', currentUsername); localStorage.setItem('panel-userkey', currentUserKey); }catch(e){}
     applyUserUI();
     closeLogin();
   }
   loginSubmit.addEventListener('click', submitLogin);
-  loginNameInput.addEventListener('keydown', function(e){ if(e.key === 'Enter') submitLogin(); });
+  loginPassInput.addEventListener('keydown', function(e){ if(e.key === 'Enter') submitLogin(); });
+  loginUserInput.addEventListener('keydown', function(e){ if(e.key === 'Enter') loginPassInput.focus(); });
   loginCancel.addEventListener('click', closeLogin);
-  changeNameBtn.addEventListener('click', function(){ openLogin(true); });
-  if(!currentUsername) openLogin(false);
+  changeNameBtn.addEventListener('click', logout);
+  if(!currentUsername || !currentUserKey || !USERS[currentUserKey]) openLogin(false);
 
   /* ================= ADMIN / EDIT MODE =================
      Contraseña simple a nivel de interfaz (no es seguridad real: cualquiera
@@ -1107,12 +1144,14 @@
   /* ================= ENLACES ================= */
   const LINKS = [
     { category: "Plataformas del centro", items: [
-      { label: "Ipasen", url: "https://seneca.juntadeandalucia.es/seneca/jsp/portalpasen/", icon: "school" },
-      { label: "Moodle / Classroom", url: "https://edea.juntadeandalucia.es/cas/login?service=https%3A%2F%2Feducacionadistancia.juntadeandalucia.es%2Fcentros%2Fcadiz%2Flogin%2Findex.php%3FauthCAS%3DCAS", icon: "laptop" }
+      { label: "Séneca", url: "#", icon: "school" },
+      { label: "Moodle / Classroom", url: "#", icon: "laptop" }
     ]},
     { category: "Recursos de la clase", items: [
-      { label: "Drive compartido", url: "https://drive.google.com/drive/folders/1IhjmQ16kJ2qtyrS4mpS_Em1Z9PhPGH9P?usp=drive_link", icon: "cloud" },
-      { label: "Telegram Seguridad Informatica", url: "https://t.me/+ceXr7cMTMftkNjI0", icon: "send" },
+      { label: "Drive / Mega compartido", url: "#", icon: "folder" },
+      { label: "Chuletas de comandos Linux/Bash", url: "#", icon: "terminal" },
+      { label: "Packet Tracer", url: "#", icon: "network" },
+      { label: "Windows Server", url: "#", icon: "server" }
     ]}
   ];
   function renderLinks(){
@@ -1336,7 +1375,7 @@
       return;
     }
     sorted.forEach(m => {
-      const isOwn = m.clientId && m.clientId === CLIENT_ID;
+      const isOwn = m.userKey && m.userKey === currentUserKey;
       const wrap = document.createElement('div');
       wrap.className = 'chat-msg ' + (isOwn ? 'own' : 'other');
       const nameEl = document.createElement('div');
@@ -1358,7 +1397,7 @@
     const text = chatInput.value.trim();
     if(!text) return;
     if(!currentUsername){ openLogin(false); return; }
-    sendChatMsg({ name: currentUsername, clientId: CLIENT_ID, text: text, ts: Date.now() });
+    sendChatMsg({ name: currentUsername, userKey: currentUserKey, text: text, ts: Date.now() });
     chatInput.value = '';
   });
   renderChat();
@@ -1369,7 +1408,7 @@
   registerNav();
 
   }catch(err){
-    console.error('Panel 2SMR: error de inicialización', err);
+    console.error('Panel Académico: error de inicialización', err);
   }
 })();
 </script>
