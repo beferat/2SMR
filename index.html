@@ -218,10 +218,17 @@
   .cal-day.muted{ color:var(--text-dim); opacity:.4; cursor:default; }
   .cal-day.muted:hover{ background:transparent; }
   .cal-day.today{ border-color:var(--accent); }
+  .cal-day.festivo{ background:color-mix(in srgb, var(--danger) 16%, transparent); color:var(--danger); font-weight:800; }
+  .cal-day.festivo.muted{ opacity:.35; }
   .cal-day.selected{ background:var(--accent); color:var(--accent-ink); }
   .cal-dots{ display:flex; gap:3px; position:absolute; bottom:7px; }
   .cal-dots span{ width:5px; height:5px; border-radius:50%; background:var(--accent); }
+  .cal-dots span.dot-festivo{ background:var(--danger); }
   .cal-day.selected .cal-dots span{ background:var(--accent-ink); }
+  .cal-legend{ display:flex; flex-wrap:wrap; gap:14px; margin-top:14px; padding:0 4px; }
+  .cal-legend .legend-item{ font-size:.78rem; }
+  .cal-legend .legend-swatch.sw-task{ background:var(--accent); }
+  .cal-legend .legend-swatch.sw-festivo{ background:var(--danger); }
 
   .tasks-panel{ display:grid; grid-template-columns:1fr; gap:20px; }
   @media(min-width:760px){ .tasks-panel{ grid-template-columns:320px 1fr; align-items:start; } }
@@ -428,6 +435,16 @@
           <button class="icon-btn" id="nextMonth" aria-label="Mes siguiente"><i data-lucide="chevron-right"></i></button>
         </div>
         <div class="cal-grid" id="calGrid"></div>
+        <div class="cal-legend">
+          <div class="legend-item" style="display:flex;align-items:center;gap:7px;">
+            <span class="legend-swatch sw-task" style="width:10px;height:10px;border-radius:50%;display:inline-block;"></span>
+            <span>Tarea / examen</span>
+          </div>
+          <div class="legend-item" style="display:flex;align-items:center;gap:7px;">
+            <span class="legend-swatch sw-festivo" style="width:10px;height:10px;border-radius:50%;display:inline-block;"></span>
+            <span>Festivo / no lectivo</span>
+          </div>
+        </div>
       </div>
 
       <div class="tasks-panel">
@@ -619,21 +636,10 @@
     "jmarama": { password: "j1234", name: "Leix" },
     "aflorol": { password: "a1234", name: "Asier" },
     "rgilgar": { password: "r1234", name: "Rafa" },
-    "belen": { password: "b1234", name: "Belen" },
-    "": { password: "", name: "" },
-    "": { password: "", name: "" },
-    "": { password: "", name: "" },
-    "": { password: "", name: "" },
-    "": { password: "", name: "" },
-    "": { password: "", name: "" },
-    "": { password: "", name: "" },
-    "": { password: "", name: "" },
-    "": { password: "", name: "" },
-    "": { password: "", name: "" },
-
+    "belen": { password: "b1234", name: "Belen" }
   };
 
-  let currentname = '';
+  let currentUsername = '';
   let currentUserKey = '';
   try{
     currentUsername = localStorage.getItem('panel-username') || '';
@@ -1008,6 +1014,42 @@
   }
   setInterval(renderCountdown, 60000);
 
+  /* ================= FESTIVOS =================
+     Días festivos y periodos no lectivos oficiales del calendario escolar
+     de Andalucía para el curso 2025-2026 (fuente: Junta de Andalucía).
+     Cada provincia y cada municipio añade además sus propios días no
+     lectivos (fiestas locales, "días de libre disposición", etc.), que
+     no están recogidos aquí porque varían según el centro. Para añadirlos,
+     agrega una línea más con el mismo formato dentro de FESTIVOS_RANGOS
+     (un solo día: mismo valor en "de" y "a") o FESTIVOS_DIAS. */
+  const FESTIVOS_DIAS = [
+    { date: "2025-10-13", label: "Fiesta Nacional de España" },
+    { date: "2025-11-01", label: "Día de Todos los Santos" },
+    { date: "2025-12-06", label: "Día de la Constitución" },
+    { date: "2025-12-08", label: "Día de la Inmaculada Concepción" },
+    { date: "2026-02-28", label: "Día de Andalucía" },
+    { date: "2026-05-01", label: "Fiesta del Trabajo" }
+  ];
+  const FESTIVOS_RANGOS = [
+    { de: "2025-12-22", a: "2026-01-06", label: "Vacaciones de Navidad" },
+    { de: "2026-03-30", a: "2026-04-05", label: "Vacaciones de Semana Santa" }
+  ];
+  function buildFestivoMap(){
+    const map = new Map();
+    FESTIVOS_DIAS.forEach(f => map.set(f.date, f.label));
+    FESTIVOS_RANGOS.forEach(r => {
+      let cur = new Date(r.de + 'T00:00:00');
+      const end = new Date(r.a + 'T00:00:00');
+      while(cur <= end){
+        const y = cur.getFullYear(), m = String(cur.getMonth()+1).padStart(2,'0'), d = String(cur.getDate()).padStart(2,'0');
+        map.set(y + '-' + m + '-' + d, r.label);
+        cur.setDate(cur.getDate() + 1);
+      }
+    });
+    return map;
+  }
+  const FESTIVO_MAP = buildFestivoMap();
+
   /* ================= CALENDARIO ================= */
   const calLabel = document.getElementById('calLabel');
   const calGrid = document.getElementById('calGrid');
@@ -1045,11 +1087,14 @@
       const dateStr = fmtDate(viewYear, viewMonth, d);
       el.className = 'cal-day'; el.tabIndex = 0; el.textContent = d;
       if(dateStr === fmtDate(today.getFullYear(), today.getMonth(), today.getDate())) el.classList.add('today');
+      const festivoLabel = FESTIVO_MAP.get(dateStr);
+      if(festivoLabel){ el.classList.add('festivo'); el.title = festivoLabel; }
       if(dateStr === selectedDate) el.classList.add('selected');
-      if(eventDates.has(dateStr)){
+      if(eventDates.has(dateStr) || festivoLabel){
         const dots = document.createElement('div');
         dots.className = 'cal-dots';
-        dots.appendChild(document.createElement('span'));
+        if(eventDates.has(dateStr)) dots.appendChild(document.createElement('span'));
+        if(festivoLabel){ const fd = document.createElement('span'); fd.className = 'dot-festivo'; dots.appendChild(fd); }
         el.appendChild(dots);
       }
       el.addEventListener('click', function(){
@@ -1159,7 +1204,7 @@
     ]},
     { category: "Recursos de la clase", items: [
       { label: "Drive compartido", url: "https://drive.google.com/drive/folders/1IhjmQ16kJ2qtyrS4mpS_Em1Z9PhPGH9P?usp=drive_link", icon: "folder-git" },
-      { label: "Telegram Seguridad Informatica", url: "https://t.me/+ceXr7cMTMftkNjI0", icon: "binary" },
+      { label: "Telegram Seguridad Informatica", url: "https://t.me/+ceXr7cMTMftkNjI0", icon: "binary" }
     ]}
   ];
   function renderLinks(){
