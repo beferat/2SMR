@@ -352,6 +352,21 @@
   .user-badge button{ background:none; border:none; color:var(--text-dim); cursor:pointer; display:flex; padding:2px; }
   .user-badge button svg{ width:14px; height:14px; }
 
+  .presence-wrap{ position:relative; }
+  .presence-panel{
+    display:none; position:absolute; top:calc(100% + 8px); right:0; min-width:210px; max-height:280px;
+    overflow-y:auto; background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:8px; box-shadow:0 12px 30px rgba(0,0,0,.2); z-index:50; flex-direction:column; gap:3px;
+  }
+  .presence-panel.open{ display:flex; }
+  .presence-row{ display:flex; align-items:center; gap:9px; font-size:.85rem; font-weight:700; padding:7px 9px; border-radius:9px; }
+  .presence-row:hover{ background:var(--surface-2); }
+  .presence-row .avatar{
+    width:23px; height:23px; border-radius:50%; background:var(--accent); color:var(--accent-ink);
+    display:flex; align-items:center; justify-content:center; font-size:.68rem; font-weight:800; flex-shrink:0;
+  }
+  .presence-empty{ font-size:.8rem; color:var(--text-dim); padding:7px 9px; }
+
   .chat-card{ display:flex; flex-direction:column; height:min(70vh,640px); padding:0; overflow:hidden; }
   .chat-list{ flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:10px; padding:18px; }
   .chat-msg{ max-width:78%; display:flex; flex-direction:column; gap:3px; }
@@ -391,6 +406,13 @@
       <span id="userNameLabel">Invitado</span>
       <button id="changeNameBtn" aria-label="Cerrar sesión"><i data-lucide="log-out"></i></button>
     </span>
+    <div class="presence-wrap" id="presenceWrap">
+      <button class="theme-toggle" id="presenceToggle" aria-haspopup="true" aria-expanded="false">
+        <span class="dot"><i data-lucide="users"></i></span>
+        <span id="presenceCount">0 en línea</span>
+      </button>
+      <div class="presence-panel" id="presencePanel"></div>
+    </div>
     <span class="sync-badge local" id="syncBadge"><span class="sync-dot"></span>Local</span>
     <button class="lock-toggle" id="lockToggle" aria-label="Modo edición">
       <span class="dot"><i data-lucide="lock" id="lockIcon"></i></span>
@@ -678,6 +700,7 @@
   }
   function closeLogin(){ loginBackdrop.classList.remove('open'); }
   function logout(){
+    dropPresence();
     currentUsername = ''; currentUserKey = '';
     try{ localStorage.removeItem('panel-username'); localStorage.removeItem('panel-userkey'); }catch(e){}
     applyUserUI();
@@ -696,6 +719,7 @@
     currentUserKey = key;
     try{ localStorage.setItem('panel-username', currentUsername); localStorage.setItem('panel-userkey', currentUserKey); }catch(e){}
     applyUserUI();
+    announcePresence();
     closeLogin();
   }
   loginSubmit.addEventListener('click', submitLogin);
@@ -704,6 +728,86 @@
   loginCancel.addEventListener('click', closeLogin);
   changeNameBtn.addEventListener('click', logout);
   if(!currentUsername || !currentUserKey || !USERS[currentUserKey]) openLogin(false);
+
+  /* ================= PRESENCIA (quién está en la página ahora mismo) =================
+     Se apoya en Firebase Realtime Database, bajo la ruta "presence/{usuario}/{conexión}".
+     Cada pestaña abierta crea su propia entrada de conexión y Firebase la borra sola
+     en cuanto esa pestaña se desconecta (onDisconnect), así que un mismo usuario con
+     varias pestañas abiertas solo aparece una vez en la lista. Sin Firebase configurado,
+     solo te verás a ti mismo mientras tengas sesión iniciada. */
+  const presenceToggle = document.getElementById('presenceToggle');
+  const presencePanel = document.getElementById('presencePanel');
+  const presenceCount = document.getElementById('presenceCount');
+  let onlineUsers = {};
+  let myPresenceConnRef = null;
+
+  function renderPresence(){
+    const keys = Object.keys(onlineUsers);
+    presenceCount.textContent = keys.length + ' en línea';
+    presencePanel.innerHTML = '';
+    if(keys.length === 0){
+      const empty = document.createElement('div');
+      empty.className = 'presence-empty';
+      empty.textContent = 'No hay nadie conectado ahora mismo.';
+      presencePanel.appendChild(empty);
+      return;
+    }
+    keys.sort(function(a,b){ return onlineUsers[a].name.localeCompare(onlineUsers[b].name); });
+    keys.forEach(function(k){
+      const u = onlineUsers[k];
+      const isMe = k === currentUserKey;
+      const row = document.createElement('div');
+      row.className = 'presence-row';
+      const av = document.createElement('span');
+      av.className = 'avatar';
+      av.textContent = (u.name || '?').trim().slice(0,1).toUpperCase();
+      const nm = document.createElement('span');
+      nm.textContent = u.name + (isMe ? ' (tú)' : '');
+      row.appendChild(av); row.appendChild(nm);
+      presencePanel.appendChild(row);
+    });
+  }
+  presenceToggle.addEventListener('click', function(e){
+    e.stopPropagation();
+    const open = presencePanel.classList.toggle('open');
+    presenceToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  document.addEventListener('click', function(e){
+    if(presencePanel.classList.contains('open') && !presencePanel.contains(e.target) && e.target !== presenceToggle){
+      presencePanel.classList.remove('open');
+      presenceToggle.setAttribute('aria-expanded','false');
+    }
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape') presencePanel.classList.remove('open');
+  });
+  renderPresence();
+
+  function announcePresence(){
+    if(!currentUserKey || !currentUsername) return;
+    if(typeof firebase !== 'undefined' && firebase.database && firebaseConfig.apiKey && firebaseConfig.apiKey !== 'TU_API_KEY'){
+      if(myPresenceConnRef) return;
+      try{
+        myPresenceConnRef = firebase.database().ref('presence/' + currentUserKey).push();
+        myPresenceConnRef.onDisconnect().remove();
+        myPresenceConnRef.set({ name: currentUsername, ts: Date.now() });
+      }catch(e){ console.error('presence set error', e); }
+    } else {
+      onlineUsers = {};
+      onlineUsers[currentUserKey] = { name: currentUsername, count: 1 };
+      renderPresence();
+    }
+  }
+  function dropPresence(){
+    if(myPresenceConnRef){
+      try{ myPresenceConnRef.remove(); }catch(e){}
+      myPresenceConnRef = null;
+    }
+    if(!(typeof firebase !== 'undefined' && firebase.database && firebaseConfig.apiKey && firebaseConfig.apiKey !== 'TU_API_KEY')){
+      onlineUsers = {};
+      renderPresence();
+    }
+  }
 
   /* ================= ADMIN / EDIT MODE =================
      Contraseña simple a nivel de interfaz (no es seguridad real: cualquiera
@@ -919,6 +1023,21 @@
         saveLocal('panel-chat', chatMsgs);
         renderChat();
       }, function(err){ console.error('Firebase chat error', err); });
+
+      const presenceRootRef = firebase.database().ref('presence');
+      presenceRootRef.on('value', function(snapshot){
+        const val = snapshot.val() || {};
+        onlineUsers = {};
+        Object.keys(val).forEach(function(uKey){
+          const conns = val[uKey] || {};
+          const connKeys = Object.keys(conns);
+          if(connKeys.length === 0) return;
+          const sample = conns[connKeys[0]];
+          onlineUsers[uKey] = { name: (sample && sample.name) || uKey, count: connKeys.length };
+        });
+        renderPresence();
+      }, function(err){ console.error('Firebase presence error', err); });
+      announcePresence();
     }catch(e){
       console.error('Firebase: no se pudo inicializar', e);
       tasksRef = null; avisosRef = null; chatRef = null;
@@ -926,12 +1045,14 @@
       avisos = loadLocal('panel-avisos');
       chatMsgs = loadLocal('panel-chat');
       setSyncStatus('local', 'Local');
+      announcePresence();
     }
   } else {
     tasks = loadLocal('panel-tasks');
     avisos = loadLocal('panel-avisos');
     chatMsgs = loadLocal('panel-chat');
     setSyncStatus('local', 'Local');
+    announcePresence();
   }
 
   function addTask(task){
