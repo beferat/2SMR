@@ -222,7 +222,8 @@
   .cal-day.festivo.muted{ opacity:.35; }
   .cal-day.selected{ background:var(--accent); color:var(--accent-ink); }
   .cal-dots{ display:flex; gap:3px; position:absolute; bottom:7px; }
-  .cal-dots span{ width:5px; height:5px; border-radius:50%; background:var(--accent); }
+  .cal-dots span{ width:7px; height:7px; border-radius:50%; background:var(--accent); }
+  .cal-day.selected .cal-dots span{ box-shadow:0 0 0 1.5px var(--accent-ink); }
   .cal-dots span.dot-festivo{ background:var(--danger); }
   .cal-day.selected .cal-dots span{ background:var(--accent-ink); }
   .cal-legend{ display:flex; flex-wrap:wrap; gap:14px; margin-top:14px; padding:0 4px; }
@@ -285,6 +286,7 @@
   .task-tag.tarea{ background:var(--sor); color:var(--sor-t); }
   .task-tag.examen{ background:var(--web); color:var(--web-t); }
   .task-date{ font-size:.74rem; color:var(--text-dim); font-weight:700; }
+  .task-subj{ font-size:.66rem; font-weight:900; letter-spacing:.03em; padding:2px 8px; border-radius:6px; }
   .task-del{ background:none; border:none; color:var(--text-dim); cursor:pointer; flex-shrink:0; display:flex; padding:5px; border-radius:7px; }
   .task-del:hover{ color:var(--danger); background:var(--surface); }
   .task-del svg{ width:18px; height:18px; }
@@ -508,10 +510,7 @@
         </div>
         <div class="cal-grid" id="calGrid"></div>
         <div class="cal-legend">
-          <div class="legend-item" style="display:flex;align-items:center;gap:7px;">
-            <span class="legend-swatch sw-task" style="width:10px;height:10px;border-radius:50%;display:inline-block;"></span>
-            <span>Tarea / examen</span>
-          </div>
+          <span id="calSubjLegend" style="display:contents;"></span>
           <div class="legend-item" style="display:flex;align-items:center;gap:7px;">
             <span class="legend-swatch sw-festivo" style="width:10px;height:10px;border-radius:50%;display:inline-block;"></span>
             <span>Festivo / no lectivo</span>
@@ -532,6 +531,10 @@
                 <option value="tarea">Tarea</option>
                 <option value="examen">Examen</option>
               </select>
+            </div>
+            <div class="field">
+              <label for="taskSubject">Asignatura</label>
+              <select id="taskSubject" required></select>
             </div>
             <div class="field">
               <label for="taskDate">Fecha</label>
@@ -1189,7 +1192,7 @@
     let level = 'neutral';
     if(totalHours <= 24) level = 'danger'; else if(totalHours <= 48) level = 'warn';
     bar.className = 'countdown-bar ' + level;
-    bar.innerHTML = '<i data-lucide="alarm-clock"></i><span><strong>' + exam.title + '</strong> — quedan ' + days + ' d ' + hours + ' h</span>';
+    bar.innerHTML = '<i data-lucide="alarm-clock"></i><span><strong>' + (exam.subject ? exam.subject + ': ' : '') + exam.title + '</strong> — quedan ' + days + ' d ' + hours + ' h</span>';
     if(window.lucide) lucide.createIcons();
   }
   setInterval(renderCountdown, 60000);
@@ -1240,6 +1243,24 @@
   let selectedDate = null;
   const MONTHS = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
   const DOWS = ["L","M","X","J","V","S","D"];
+  const SUBJ_VAR = {
+    "Inglés":"--ing", "Servicios en red":"--sr", "Servicios en Red":"--sr",
+    "Seguridad":"--seg", "Ap.Web":"--web", "SOR":"--sor", "Ipe II":"--ipe",
+    "Proyecto":"--pro", "HLC":"--hlc"
+  };
+  function subjColor(s){ return 'var(' + (SUBJ_VAR[s] || '--accent') + ')'; }
+  (function renderCalLegend(){
+    const wrap = document.getElementById('calSubjLegend');
+    LEGEND_ORDER.forEach(function(s){
+      const item = document.createElement('div');
+      item.className = 'legend-item';
+      const dot = document.createElement('span');
+      dot.style.cssText = 'width:10px;height:10px;border-radius:50%;display:inline-block;background:' + subjColor(s);
+      const lb = document.createElement('span'); lb.textContent = s;
+      item.appendChild(dot); item.appendChild(lb);
+      wrap.appendChild(item);
+    });
+  })();
   function fmtDate(y,m,d){ return y + '-' + String(m+1).padStart(2,'0') + '-' + String(d).padStart(2,'0'); }
 
   function renderCalendar(){
@@ -1255,7 +1276,14 @@
     if(startOffset < 0) startOffset = 6;
     const daysInMonth = new Date(viewYear, viewMonth+1, 0).getDate();
     const daysInPrevMonth = new Date(viewYear, viewMonth, 0).getDate();
-    const eventDates = new Set(tasks.map(t => t.date));
+    const eventDates = new Map();
+    tasks.forEach(function(t){
+      if(!t.date) return;
+      if(!eventDates.has(t.date)) eventDates.set(t.date, []);
+      const arr = eventDates.get(t.date);
+      const s = t.subject || '';
+      if(arr.indexOf(s) === -1) arr.push(s);
+    });
     for(let i=0; i<startOffset; i++){
       const el = document.createElement('div');
       el.className = 'cal-day muted';
@@ -1273,7 +1301,19 @@
       if(eventDates.has(dateStr) || festivoLabel){
         const dots = document.createElement('div');
         dots.className = 'cal-dots';
-        if(eventDates.has(dateStr)) dots.appendChild(document.createElement('span'));
+        if(eventDates.has(dateStr)){
+          const subs = eventDates.get(dateStr);
+          const names = [];
+          subs.slice(0,4).forEach(function(s){
+            const sp = document.createElement('span');
+            sp.style.background = subjColor(s);
+            dots.appendChild(sp);
+          });
+          tasks.forEach(function(t){
+            if(t.date === dateStr) names.push((t.subject ? t.subject + ': ' : '') + t.title);
+          });
+          el.title = (festivoLabel ? festivoLabel + ' · ' : '') + names.join(' · ');
+        }
         if(festivoLabel){ const fd = document.createElement('span'); fd.className = 'dot-festivo'; dots.appendChild(fd); }
         el.appendChild(dots);
       }
@@ -1305,7 +1345,19 @@
   const taskList = document.getElementById('taskList');
   const taskTitle = document.getElementById('taskTitle');
   const taskType = document.getElementById('taskType');
+  const taskSubject = document.getElementById('taskSubject');
   let currentFilter = 'todos';
+
+  (function fillSubjects(){
+    const ph = document.createElement('option');
+    ph.value = ''; ph.textContent = '— Elige asignatura —'; ph.disabled = true; ph.selected = true;
+    taskSubject.appendChild(ph);
+    LEGEND_ORDER.forEach(function(s){
+      const o = document.createElement('option');
+      o.value = s; o.textContent = s;
+      taskSubject.appendChild(o);
+    });
+  })();
 
   function renderTasks(){
     taskList.innerHTML = '';
@@ -1340,7 +1392,14 @@
       const dateSpan = document.createElement('span');
       dateSpan.className = 'task-date';
       dateSpan.textContent = t.date ? new Date(t.date+'T00:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'}) : '';
-      meta.appendChild(tag); meta.appendChild(dateSpan);
+      meta.appendChild(tag);
+      if(t.subject){
+        const subj = document.createElement('span');
+        subj.className = 'task-subj ' + (COLOR_CLASS[t.subject] || 'c-rec');
+        subj.textContent = t.subject;
+        meta.appendChild(subj);
+      }
+      meta.appendChild(dateSpan);
       bodyEl.appendChild(title); bodyEl.appendChild(meta);
 
       const del = document.createElement('button');
@@ -1360,9 +1419,11 @@
     if(!editMode) return;
     const title = taskTitle.value.trim();
     const date = taskDateInput.value;
-    if(!title || !date) return;
-    addTask({ title: title, type: taskType.value, date: date, done: false });
+    const subject = taskSubject.value;
+    if(!title || !date || !subject) return;
+    addTask({ title: title, type: taskType.value, subject: subject, date: date, done: false });
     taskTitle.value = '';
+    taskSubject.selectedIndex = 0;
   });
   document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', function(){
