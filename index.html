@@ -377,13 +377,63 @@
   .chat-msg.other .chat-bubble{ background:var(--surface-2); border:1px solid var(--border); border-bottom-left-radius:4px; }
   .chat-msg.own .chat-bubble{ background:var(--accent); color:var(--accent-ink); border-bottom-right-radius:4px; }
   .chat-msg-time{ font-size:.66rem; color:var(--text-dim); padding:0 4px; }
-  .chat-input-row{ display:flex; gap:10px; padding:14px 16px; border-top:1px solid var(--border); background:var(--surface); }
-  .chat-input-row input{ flex:1; }
+  .chat-input-row{ display:flex; gap:10px; padding:14px 16px; border-top:1px solid var(--border); background:var(--surface); align-items:center; }
+  .chat-input-row input[type="text"]{ flex:1; }
   .chat-send{
     background:var(--accent); color:var(--accent-ink); border:none; border-radius:10px;
-    width:42px; flex-shrink:0; display:flex; align-items:center; justify-content:center; cursor:pointer;
+    width:42px; height:42px; flex-shrink:0; display:flex; align-items:center; justify-content:center; cursor:pointer;
   }
   .chat-send svg{ width:18px; height:18px; }
+
+  /* ---- chat: adjuntos y no leídos ---- */
+  .chat-attach{
+    background:var(--surface-2); color:var(--text); border:1px solid var(--border); border-radius:10px;
+    width:42px; height:42px; flex-shrink:0; display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  .chat-attach:hover{ background:var(--border); }
+  .chat-attach svg{ width:18px; height:18px; }
+  .chat-card.dragover{ outline:3px dashed var(--accent); outline-offset:-6px; }
+
+  .chat-preview{
+    display:flex; align-items:center; gap:12px; padding:10px 16px;
+    border-top:1px solid var(--border); background:var(--surface-2);
+  }
+  .chat-preview[hidden]{ display:none; }
+  .chat-preview img{ width:48px; height:48px; object-fit:cover; border-radius:8px; }
+  .chat-preview .pv-icon{ width:48px; height:48px; border-radius:8px; background:var(--surface); display:flex; align-items:center; justify-content:center; color:var(--accent); }
+  .chat-preview .pv-info{ flex:1; min-width:0; font-size:.82rem; font-weight:700; }
+  .chat-preview .pv-info small{ display:block; color:var(--text-dim); font-weight:600; }
+  .chat-preview .pv-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .chat-preview button{ background:none; border:none; color:var(--text-dim); cursor:pointer; display:flex; padding:6px; }
+  .chat-preview button:hover{ color:var(--danger); }
+
+  .chat-bubble.media{ padding:5px; }
+  .chat-bubble .chat-img{ display:block; max-width:min(280px,100%); max-height:320px; width:auto; height:auto; border-radius:11px; cursor:zoom-in; }
+  .chat-bubble .chat-cap{ padding:6px 9px 3px; }
+  .chat-file{
+    display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:11px;
+    background:rgba(0,0,0,.12); color:inherit; text-decoration:none; font-weight:700; font-size:.85rem; min-width:170px;
+  }
+  .chat-file svg{ width:22px; height:22px; flex-shrink:0; }
+  .chat-file small{ display:block; opacity:.75; font-weight:600; font-size:.72rem; }
+  .chat-file .cf-name{ overflow-wrap:anywhere; }
+
+  .chat-divider{
+    align-self:center; font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em;
+    background:var(--accent); color:var(--accent-ink); padding:4px 14px; border-radius:100px; margin:6px 0;
+  }
+  .nav-badge{
+    margin-left:auto; min-width:20px; height:20px; padding:0 6px; border-radius:100px;
+    background:var(--danger); color:#fff; font-size:.7rem; font-weight:800;
+    display:inline-flex; align-items:center; justify-content:center;
+  }
+  .nav-badge[hidden]{ display:none; }
+
+  .lightbox{
+    position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:200;
+    display:flex; align-items:center; justify-content:center; padding:20px; cursor:zoom-out;
+  }
+  .lightbox img{ max-width:100%; max-height:100%; border-radius:10px; }
 
   #loginBackdrop .modal-box{ max-width:380px; }
 
@@ -559,10 +609,13 @@
         <h2>Chat de clase</h2>
         <p>En tiempo real — se ve tu nombre en cada mensaje</p>
       </div>
-      <div class="card chat-card">
+      <div class="card chat-card" id="chatCard">
         <div class="chat-list" id="chatList"></div>
+        <div class="chat-preview" id="chatPreview" hidden></div>
         <form class="chat-input-row" id="chatForm">
-          <input type="text" id="chatInput" placeholder="Escribe un mensaje…" autocomplete="off" required>
+          <input type="file" id="chatFile" hidden>
+          <button type="button" class="chat-attach" id="chatAttach" aria-label="Adjuntar imagen o archivo"><i data-lucide="paperclip"></i></button>
+          <input type="text" id="chatInput" placeholder="Escribe un mensaje…" autocomplete="off">
           <button type="submit" class="chat-send" aria-label="Enviar"><i data-lucide="send"></i></button>
         </form>
       </div>
@@ -577,7 +630,7 @@
     <button class="index-link" data-target="enlaces"><i data-lucide="link-2"></i>Enlaces</button>
     <button class="index-link" data-target="notas"><i data-lucide="calculator"></i>Notas</button>
     <button class="index-link" data-target="avisos"><i data-lucide="megaphone"></i>Avisos</button>
-    <button class="index-link" data-target="chat"><i data-lucide="message-circle"></i>Chat</button>
+    <button class="index-link" data-target="chat"><i data-lucide="message-circle"></i>Chat<span class="nav-badge" id="chatBadge" hidden></span></button>
   </nav>
 
 </div>
@@ -1024,10 +1077,9 @@
       }, function(err){ console.error('Firebase avisos error', err); });
 
       chatRef = firebase.database().ref('chat');
-      chatRef.limitToLast(200).on('value', function(snapshot){
+      chatRef.limitToLast(100).on('value', function(snapshot){
         const val = snapshot.val() || {};
         chatMsgs = Object.keys(val).map(function(id){ return Object.assign({id:id}, val[id]); });
-        saveLocal('panel-chat', chatMsgs);
         renderChat();
       }, function(err){ console.error('Firebase chat error', err); });
 
@@ -1538,48 +1590,245 @@
   const chatForm = document.getElementById('chatForm');
   const chatInput = document.getElementById('chatInput');
   const chatList = document.getElementById('chatList');
+  const chatCard = document.getElementById('chatCard');
+  const chatFile = document.getElementById('chatFile');
+  const chatAttach = document.getElementById('chatAttach');
+  const chatPreview = document.getElementById('chatPreview');
+  const chatBadge = document.getElementById('chatBadge');
+  const pageChat = document.getElementById('page-chat');
+  const MAX_FILE = 1024 * 1024; // 1 MB para archivos que no son imagen
+
+  let pending = null;       // adjunto a punto de enviarse
+  let anchor = null;        // "último leído" al entrar al chat (para la línea de nuevos)
+  let needScroll = false;   // hay que posicionar el scroll en el siguiente render
+  let forceBottom = false;  // tras enviar, baja del todo
+
+  function lrKey(){ return 'panel-chat-lastread-' + (currentUserKey || 'anon'); }
+  function getLastRead(){
+    try{ const v = localStorage.getItem(lrKey()); return v === null ? 0 : Number(v) || 0; }catch(e){ return 0; }
+  }
+  function latestTs(){ return chatMsgs.reduce(function(m,x){ return Math.max(m, x.ts || 0); }, 0); }
+  function markRead(){
+    const t = latestTs();
+    if(t > getLastRead()){ try{ localStorage.setItem(lrKey(), String(t)); }catch(e){} }
+  }
+  function isOwn(m){ return m.userKey && m.userKey === currentUserKey; }
+  function isChatOpen(){ return pageChat.classList.contains('active') && !document.hidden; }
+
+  function updateBadge(){
+    const lr = getLastRead();
+    const n = isChatOpen() ? 0 : chatMsgs.filter(function(m){ return (m.ts||0) > lr && !isOwn(m); }).length;
+    chatBadge.hidden = n === 0;
+    chatBadge.textContent = n > 99 ? '99+' : String(n);
+  }
+
+  function enterChat(){
+    anchor = getLastRead();
+    needScroll = true;
+    renderChat();
+  }
+  let wasActive = pageChat.classList.contains('active');
+  new MutationObserver(function(){
+    const nowActive = pageChat.classList.contains('active');
+    if(nowActive === wasActive) return;
+    wasActive = nowActive;
+    if(nowActive) enterChat(); else { anchor = null; updateBadge(); }
+  }).observe(pageChat, { attributes:true, attributeFilter:['class'] });
+  document.addEventListener('visibilitychange', function(){
+    if(!document.hidden && pageChat.classList.contains('active')) enterChat();
+  });
 
   function fmtTime(ts){
     const d = new Date(ts || Date.now());
     return d.toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
   }
+  function fmtSize(b){
+    if(!b) return '';
+    if(b < 1024) return b + ' B';
+    if(b < 1048576) return Math.round(b/1024) + ' KB';
+    return (b/1048576).toFixed(1) + ' MB';
+  }
+  function openLightbox(src){
+    const lb = document.createElement('div');
+    lb.className = 'lightbox';
+    const im = document.createElement('img'); im.src = src;
+    lb.appendChild(im);
+    lb.addEventListener('click', function(){ lb.remove(); });
+    document.body.appendChild(lb);
+  }
+
   function renderChat(){
-    const wasNearBottom = (chatList.scrollHeight - chatList.scrollTop - chatList.clientHeight) < 80;
+    const open = isChatOpen();
+    const nearBottom = (chatList.scrollHeight - chatList.scrollTop - chatList.clientHeight) < 80;
     chatList.innerHTML = '';
-    const sorted = chatMsgs.slice().sort((a,b) => (a.ts||0) - (b.ts||0));
+    const sorted = chatMsgs.slice().sort(function(a,b){ return (a.ts||0) - (b.ts||0); });
     if(sorted.length === 0){
       const empty = document.createElement('div');
       empty.className = 'empty-state';
       empty.innerHTML = '<i data-lucide="message-circle"></i><div>Todavía no hay mensajes. ¡Escribe el primero!</div>';
       chatList.appendChild(empty);
       if(window.lucide) lucide.createIcons();
+      updateBadge();
       return;
     }
-    sorted.forEach(m => {
-      const isOwn = m.userKey && m.userKey === currentUserKey;
+    const unreadCount = (open && anchor !== null)
+      ? sorted.filter(function(m){ return (m.ts||0) > anchor && !isOwn(m); }).length : 0;
+    let dividerEl = null;
+
+    sorted.forEach(function(m){
+      const own = isOwn(m);
+      if(unreadCount > 0 && !dividerEl && (m.ts||0) > anchor && !own){
+        dividerEl = document.createElement('div');
+        dividerEl.className = 'chat-divider';
+        dividerEl.textContent = unreadCount === 1 ? '1 mensaje nuevo' : unreadCount + ' mensajes nuevos';
+        chatList.appendChild(dividerEl);
+      }
       const wrap = document.createElement('div');
-      wrap.className = 'chat-msg ' + (isOwn ? 'own' : 'other');
+      wrap.className = 'chat-msg ' + (own ? 'own' : 'other');
       const nameEl = document.createElement('div');
       nameEl.className = 'chat-msg-name';
-      nameEl.textContent = isOwn ? 'Tú' : (m.name || 'Anónimo');
+      nameEl.textContent = own ? 'Tú' : (m.name || 'Anónimo');
       const bubble = document.createElement('div');
       bubble.className = 'chat-bubble';
-      bubble.textContent = m.text;
+
+      if(m.type === 'image' && /^data:image\//.test(m.data || '')){
+        bubble.classList.add('media');
+        const img = document.createElement('img');
+        img.className = 'chat-img'; img.src = m.data; img.alt = m.fileName || 'imagen';
+        if(m.w && m.h) img.style.aspectRatio = m.w + ' / ' + m.h;
+        img.addEventListener('click', function(){ openLightbox(m.data); });
+        bubble.appendChild(img);
+      } else if(m.type === 'file' && /^data:/.test(m.data || '')){
+        const a = document.createElement('a');
+        a.className = 'chat-file'; a.href = m.data; a.download = m.fileName || 'archivo';
+        a.innerHTML = '<i data-lucide="file-text"></i>';
+        const info = document.createElement('span');
+        const nm = document.createElement('span'); nm.className = 'cf-name'; nm.textContent = m.fileName || 'archivo';
+        const sz = document.createElement('small'); sz.textContent = fmtSize(m.size) + ' · Descargar';
+        info.appendChild(nm); info.appendChild(sz);
+        a.appendChild(info);
+        bubble.appendChild(a);
+      }
+      if(m.text){
+        const t = document.createElement('div');
+        t.textContent = m.text;
+        if(bubble.classList.contains('media')) t.className = 'chat-cap';
+        bubble.appendChild(t);
+      }
+
       const timeEl = document.createElement('div');
       timeEl.className = 'chat-msg-time';
       timeEl.textContent = fmtTime(m.ts);
       wrap.appendChild(nameEl); wrap.appendChild(bubble); wrap.appendChild(timeEl);
       chatList.appendChild(wrap);
     });
-    if(wasNearBottom) chatList.scrollTop = chatList.scrollHeight;
+    if(window.lucide) lucide.createIcons();
+
+    if(open){
+      if(needScroll){
+        if(dividerEl){
+          chatList.scrollTop = dividerEl.getBoundingClientRect().top - chatList.getBoundingClientRect().top + chatList.scrollTop - 12;
+        } else {
+          chatList.scrollTop = chatList.scrollHeight;
+        }
+        needScroll = false;
+      } else if(forceBottom || nearBottom){
+        chatList.scrollTop = chatList.scrollHeight;
+      }
+      forceBottom = false;
+      markRead();
+    }
+    updateBadge();
   }
+
+  /* ---- adjuntos ---- */
+  function readAsDataURL(f){
+    return new Promise(function(res, rej){
+      const r = new FileReader();
+      r.onload = function(){ res(r.result); };
+      r.onerror = rej;
+      r.readAsDataURL(f);
+    });
+  }
+  async function compressImage(file){
+    const url = await readAsDataURL(file);
+    const img = await new Promise(function(res, rej){
+      const i = new Image(); i.onload = function(){ res(i); }; i.onerror = rej; i.src = url;
+    });
+    const MAXD = 1280;
+    const s = Math.min(1, MAXD / Math.max(img.width, img.height));
+    const w = Math.round(img.width * s), h = Math.round(img.height * s);
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(img, 0, 0, w, h);
+    return { data: c.toDataURL('image/jpeg', 0.8), w: w, h: h };
+  }
+  async function attachFile(file){
+    if(!file) return;
+    try{
+      if(file.type.indexOf('image/') === 0 && file.type !== 'image/svg+xml'){
+        const r = await compressImage(file);
+        pending = { type:'image', data:r.data, w:r.w, h:r.h, fileName:file.name || 'imagen.jpg', size:file.size };
+      } else {
+        if(file.size > MAX_FILE){ alert('El archivo es demasiado grande (máximo ' + fmtSize(MAX_FILE) + ').'); return; }
+        pending = { type:'file', data: await readAsDataURL(file), fileName:file.name || 'archivo', size:file.size };
+      }
+    }catch(e){ alert('No se pudo leer el archivo.'); return; }
+    renderPreview();
+  }
+  function renderPreview(){
+    chatPreview.innerHTML = '';
+    if(!pending){ chatPreview.hidden = true; return; }
+    chatPreview.hidden = false;
+    if(pending.type === 'image'){
+      const im = document.createElement('img'); im.src = pending.data; chatPreview.appendChild(im);
+    } else {
+      const ic = document.createElement('span'); ic.className = 'pv-icon';
+      ic.innerHTML = '<i data-lucide="file-text"></i>'; chatPreview.appendChild(ic);
+    }
+    const info = document.createElement('div'); info.className = 'pv-info';
+    const nm = document.createElement('div'); nm.className = 'pv-name'; nm.textContent = pending.fileName;
+    const sz = document.createElement('small'); sz.textContent = fmtSize(pending.size);
+    info.appendChild(nm); info.appendChild(sz);
+    const x = document.createElement('button'); x.type = 'button'; x.setAttribute('aria-label','Quitar adjunto');
+    x.innerHTML = '<i data-lucide="x"></i>';
+    x.addEventListener('click', function(){ pending = null; chatFile.value = ''; renderPreview(); });
+    chatPreview.appendChild(info); chatPreview.appendChild(x);
+    if(window.lucide) lucide.createIcons();
+  }
+  chatAttach.addEventListener('click', function(){ chatFile.click(); });
+  chatFile.addEventListener('change', function(){ attachFile(chatFile.files[0]); });
+  chatInput.addEventListener('paste', function(e){
+    const files = e.clipboardData && e.clipboardData.files;
+    if(files && files.length){ e.preventDefault(); attachFile(files[0]); }
+  });
+  ['dragenter','dragover'].forEach(function(ev){
+    chatCard.addEventListener(ev, function(e){ e.preventDefault(); chatCard.classList.add('dragover'); });
+  });
+  ['dragleave','drop'].forEach(function(ev){
+    chatCard.addEventListener(ev, function(e){ e.preventDefault(); chatCard.classList.remove('dragover'); });
+  });
+  chatCard.addEventListener('drop', function(e){
+    if(e.dataTransfer && e.dataTransfer.files.length) attachFile(e.dataTransfer.files[0]);
+  });
+
   chatForm.addEventListener('submit', function(e){
     e.preventDefault();
     const text = chatInput.value.trim();
-    if(!text) return;
+    if(!text && !pending) return;
     if(!currentUsername){ openLogin(false); return; }
-    sendChatMsg({ name: currentUsername, userKey: currentUserKey, text: text, ts: Date.now() });
+    const msg = { name: currentUsername, userKey: currentUserKey, ts: Date.now() };
+    if(text) msg.text = text;
+    if(pending){
+      msg.type = pending.type; msg.data = pending.data;
+      msg.fileName = pending.fileName; msg.size = pending.size;
+      if(pending.w){ msg.w = pending.w; msg.h = pending.h; }
+    }
+    forceBottom = true;
+    sendChatMsg(msg);
     chatInput.value = '';
+    pending = null; chatFile.value = ''; renderPreview();
   });
   renderChat();
 
