@@ -437,6 +437,25 @@
   }
   .lightbox img{ max-width:100%; max-height:100%; border-radius:10px; }
 
+  .presence-panel{ min-width:250px; }
+  .presence-row .pr-name{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .kick-btn{
+    background:var(--danger); color:#fff; border:none; border-radius:7px; padding:4px 10px;
+    font-family:inherit; font-size:.72rem; font-weight:800; cursor:pointer; flex-shrink:0;
+  }
+  .kick-btn:hover{ opacity:.88; }
+
+  .chat-notice{
+    padding:9px 16px; font-size:.82rem; font-weight:700; border-top:1px solid var(--border);
+    background:color-mix(in srgb, var(--danger) 16%, var(--surface)); color:var(--danger);
+  }
+  .chat-notice[hidden]{ display:none; }
+  .chat-input-row input:disabled, .chat-attach:disabled, .chat-send:disabled{ opacity:.5; cursor:not-allowed; }
+
+  .kick-overlay{ z-index:300; background:rgba(0,0,0,.88); }
+  .kick-overlay .modal-box{ text-align:center; max-width:380px; }
+  .kick-time{ font-size:2.8rem; font-weight:800; color:var(--danger); margin:6px 0 14px; font-variant-numeric:tabular-nums; }
+
   #loginBackdrop .modal-box{ max-width:380px; }
 
   footer{ text-align:center; padding:26px; color:var(--text-dim); font-size:.76rem; }
@@ -614,6 +633,7 @@
       </div>
       <div class="card chat-card" id="chatCard">
         <div class="chat-list" id="chatList"></div>
+        <div class="chat-notice" id="chatNotice" hidden></div>
         <div class="chat-preview" id="chatPreview" hidden></div>
         <form class="chat-input-row" id="chatForm">
           <input type="file" id="chatFile" hidden>
@@ -657,6 +677,15 @@
       <button class="btn-ghost" id="loginCancel" style="display:none;">Cancelar</button>
       <button class="btn-add" id="loginSubmit">Entrar</button>
     </div>
+  </div>
+</div>
+
+<div class="modal-backdrop kick-overlay" id="kickOverlay">
+  <div class="modal-box">
+    <h3>Has sido expulsado</h3>
+    <p id="kickBy">Un administrador te ha expulsado temporalmente.</p>
+    <div class="kick-time" id="kickTime">5:00</div>
+    <p style="margin-bottom:0;">Podrás volver a entrar cuando termine el tiempo.</p>
   </div>
 </div>
 
@@ -712,7 +741,7 @@
     "ssangue": { password: "s1234", name: "Samuel" },
     "agongal": { password: "a1234", name: "Alejandro" },
     "jmarama": { password: "j1234", name: "Leix" },
-    "aflorol": { password: "a", name: "Asier" },
+    "aflorol": { password: "a1234", name: "Asier" },
     "rgilgar": { password: "r1234", name: "Rafa" },
     "agutram": { password: "a1234", name: "Alvaro Guti" },
     "dcamore": { password: "d1234", name: "David Campos" },
@@ -825,8 +854,17 @@
       av.className = 'avatar';
       av.textContent = (u.name || '?').trim().slice(0,1).toUpperCase();
       const nm = document.createElement('span');
+      nm.className = 'pr-name';
       nm.textContent = u.name + (isMe ? ' (tú)' : '');
       row.appendChild(av); row.appendChild(nm);
+      if(!isMe){
+        const kb = document.createElement('button');
+        kb.type = 'button';
+        kb.className = 'kick-btn admin-only';
+        kb.textContent = 'Expulsar';
+        kb.addEventListener('click', function(ev){ ev.stopPropagation(); kickUser(k, u.name); });
+        row.appendChild(kb);
+      }
       presencePanel.appendChild(row);
     });
   }
@@ -1050,6 +1088,9 @@
 
   const firebaseUsable = firebaseConfig.apiKey && firebaseConfig.apiKey !== 'TU_API_KEY' && window.firebase;
   let tasksRef = null, avisosRef = null, chatRef = null;
+  let kicksRef = null, mutesRef = null;
+  let kicksMap = {}, mutesMap = {};
+  let kickUntil = 0, muteUntil = 0, serverOffset = 0;
   let tasks = [];
   let avisos = [];
   let chatMsgs = [];
@@ -1099,10 +1140,18 @@
         });
         renderPresence();
       }, function(err){ console.error('Firebase presence error', err); });
+
+      firebase.database().ref('.info/serverTimeOffset').on('value', function(s){ serverOffset = s.val() || 0; });
+      kicksRef = firebase.database().ref('kicks');
+      mutesRef = firebase.database().ref('mutes');
+      kicksRef.on('value', function(s){ kicksMap = s.val() || {}; applyPenalties(); },
+        function(err){ console.error('Firebase kicks error', err); });
+      mutesRef.on('value', function(s){ mutesMap = s.val() || {}; applyPenalties(); },
+        function(err){ console.error('Firebase mutes error', err); });
       announcePresence();
     }catch(e){
       console.error('Firebase: no se pudo inicializar', e);
-      tasksRef = null; avisosRef = null; chatRef = null;
+      tasksRef = null; avisosRef = null; chatRef = null; kicksRef = null; mutesRef = null;
       tasks = loadLocal('panel-tasks');
       avisos = loadLocal('panel-avisos');
       chatMsgs = loadLocal('panel-chat');
@@ -1879,6 +1928,18 @@
     const text = chatInput.value.trim();
     if(!text && !pending) return;
     if(!currentUsername){ openLogin(false); return; }
+    if(isKicked() || isMuted()) return;
+    const nowTs = Date.now();
+    sentTimes = sentTimes.filter(function(t){ return nowTs - t < SPAM_WINDOW; });
+    if(sentTimes.length >= SPAM_MAX){
+      sentTimes = [];
+      setPenalty('mutes', currentUserKey, sNow() + MUTE_MS, 'antispam');
+      return;
+    }
+    sentTimes.push(nowTs);
+    if(sentTimes.length === SPAM_MAX){
+      flashNotice('¡Más despacio! Si sigues enviando mensajes tan rápido, se bloqueará el chat 5 minutos.');
+    }
     const msg = { name: currentUsername, userKey: currentUserKey, ts: Date.now() };
     if(text) msg.text = text;
     if(pending){
@@ -1892,6 +1953,95 @@
     pending = null; chatFile.value = ''; renderPreview();
   });
   renderChat();
+
+  /* ================= EXPULSIONES Y ANTISPAM =================
+     - Quien esté en modo edición puede expulsar 5 min a otro usuario desde la lista de "en línea".
+     - Si alguien envía SPAM_MAX mensajes en SPAM_WINDOW ms y manda uno más, se le bloquea el chat MUTE_MS.
+     Las sanciones se guardan en Firebase (/kicks y /mutes) con la hora del servidor.
+     Como el resto del panel, es control a nivel de interfaz, no seguridad real. */
+  const KICK_MS = 5 * 60 * 1000;
+  const MUTE_MS = 5 * 60 * 1000;
+  const SPAM_MAX = 5;          // mensajes permitidos...
+  const SPAM_WINDOW = 8000;    // ...dentro de estos milisegundos
+  let sentTimes = [];
+  let wasKicked = false;
+  let noticeFlashUntil = 0;
+
+  const kickOverlay = document.getElementById('kickOverlay');
+  const kickTime = document.getElementById('kickTime');
+  const kickBy = document.getElementById('kickBy');
+  const chatNotice = document.getElementById('chatNotice');
+  const chatSendBtn = chatForm.querySelector('.chat-send');
+
+  function sNow(){ return Date.now() + serverOffset; }
+  function isKicked(){ return kickUntil > sNow(); }
+  function isMuted(){ return muteUntil > sNow(); }
+  function fmtCountdown(ms){
+    const s = Math.max(0, Math.ceil(ms / 1000));
+    return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  }
+
+  function setPenalty(kind, key, until, by){
+    if(!key) return;
+    const ref = kind === 'kicks' ? kicksRef : mutesRef;
+    const map = kind === 'kicks' ? kicksMap : mutesMap;
+    const val = { until: until, by: by || '' };
+    if(ref){ ref.child(key).set(val); }
+    else {
+      map[key] = val;
+      try{ localStorage.setItem('panel-' + kind, JSON.stringify(map)); }catch(e){}
+      applyPenalties();
+    }
+  }
+  function kickUser(key, name){
+    if(!editMode || !key || key === currentUserKey) return;
+    if(!confirm('¿Expulsar a ' + name + ' durante 5 minutos?')) return;
+    setPenalty('kicks', key, sNow() + KICK_MS, currentUsername || 'un administrador');
+  }
+  function flashNotice(text){
+    chatNotice.textContent = text;
+    chatNotice.hidden = false;
+    noticeFlashUntil = Date.now() + 4000;
+  }
+
+  function applyPenalties(){ tickPenalties(); }
+  function tickPenalties(){
+    const kEntry = currentUserKey && kicksMap[currentUserKey];
+    const mEntry = currentUserKey && mutesMap[currentUserKey];
+    kickUntil = (kEntry && kEntry.until) || 0;
+    muteUntil = (mEntry && mEntry.until) || 0;
+    const kicked = isKicked();
+    if(kicked){
+      kickOverlay.classList.add('open');
+      kickTime.textContent = fmtCountdown(kickUntil - sNow());
+      const by = kicksMap[currentUserKey] && kicksMap[currentUserKey].by;
+      kickBy.textContent = by ? by + ' te ha expulsado temporalmente.' : 'Un administrador te ha expulsado temporalmente.';
+      if(myPresenceConnRef) dropPresence();
+    } else {
+      kickOverlay.classList.remove('open');
+      if(wasKicked) announcePresence();
+    }
+    wasKicked = kicked;
+
+    const muted = isMuted();
+    chatInput.disabled = muted || kicked;
+    chatAttach.disabled = muted || kicked;
+    chatSendBtn.disabled = muted || kicked;
+    chatInput.placeholder = muted ? 'Chat bloqueado temporalmente…' : 'Escribe un mensaje…';
+    if(muted){
+      chatNotice.hidden = false;
+      chatNotice.textContent = 'Chat bloqueado por enviar mensajes demasiado rápido. Podrás escribir en ' + fmtCountdown(muteUntil - sNow()) + '.';
+    } else if(Date.now() >= noticeFlashUntil){
+      chatNotice.hidden = true;
+    }
+  }
+  setInterval(tickPenalties, 1000);
+
+  if(!kicksRef){
+    try{ kicksMap = JSON.parse(localStorage.getItem('panel-kicks')) || {}; }catch(e){ kicksMap = {}; }
+    try{ mutesMap = JSON.parse(localStorage.getItem('panel-mutes')) || {}; }catch(e){ mutesMap = {}; }
+  }
+  applyPenalties();
 
   if(window.lucide) lucide.createIcons();
   else document.addEventListener('DOMContentLoaded', function(){ if(window.lucide) lucide.createIcons(); });
