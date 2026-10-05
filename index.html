@@ -546,6 +546,8 @@
   @keyframes msgflash{ 0%,60%{ box-shadow:0 0 0 3px var(--accent); } 100%{ box-shadow:0 1px 1px rgba(0,0,0,.14); } }
   .chat-msg.flash .chat-bubble{ animation:msgflash 1.5s ease-out; }
 
+  .chat-msg.sys .chat-bubble{ background:color-mix(in srgb, var(--danger) 14%, var(--surface)); border-left:4px solid var(--danger); }
+  .chat-msg.sys .chat-msg-name{ color:var(--danger); letter-spacing:.04em; }
   #loginBackdrop .modal-box{ max-width:380px; }
 
   footer{ text-align:center; padding:26px; color:var(--text-dim); font-size:.76rem; }
@@ -2072,6 +2074,7 @@
       const wrap = document.createElement('div');
       wrap.className = 'chat-msg ' + (own ? 'own' : 'other') + (grouped ? ' grouped' : ' first');
       wrap.dataset.mid = m.id || '';
+      if(m.system) wrap.classList.add('sys');
       const bubble = document.createElement('div');
       bubble.className = 'chat-bubble';
 
@@ -2143,7 +2146,8 @@
       replyBtn.title = 'Responder';
       replyBtn.innerHTML = '<i data-lucide="reply"></i>';
       replyBtn.addEventListener('click', function(){ startReply(m); });
-      if(own){ wrap.appendChild(replyBtn); wrap.appendChild(bubble); }
+      if(m.system){ wrap.appendChild(bubble); }
+      else if(own){ wrap.appendChild(replyBtn); wrap.appendChild(bubble); }
       else { wrap.appendChild(bubble); wrap.appendChild(replyBtn); }
       chatList.appendChild(wrap);
       prev = m;
@@ -2252,17 +2256,19 @@
     if(!text && !pending) return;
     if(!currentUsername){ openLogin(false); return; }
     if(isKicked() || isMuted()) return;
-    const nowTs = Date.now();
-    sentTimes = sentTimes.filter(function(t){ return nowTs - t < SPAM_WINDOW; });
-    if(isAdminUser()) sentTimes = [];
-    if(sentTimes.length >= SPAM_MAX){
-      sentTimes = [];
-      setPenalty('mutes', currentUserKey, sNow() + MUTE_MS, 'antispam');
-      return;
-    }
-    sentTimes.push(nowTs);
-    if(sentTimes.length === SPAM_MAX){
-      flashNotice('¡Más despacio! Si sigues enviando mensajes tan rápido, se bloqueará el chat 5 minutos.');
+    if(!isAdminUser()){
+      const recent = recentSent();
+      if(recent.length >= SPAM_MAX){
+        // Ya había recibido el aviso y sigue enviando: baneo temporal
+        saveSent([]);
+        setPenalty('mutes', currentUserKey, sNow() + MUTE_MS, 'antispam');
+        announceBan(currentUsername);
+        tickPenalties();
+        return;
+      }
+      recent.push(Date.now());
+      saveSent(recent);
+      tickPenalties(); // si ya van 5 en el último minuto, muestra el aviso
     }
     const msg = { name: currentUsername, userKey: currentUserKey, ts: Date.now() };
     if(text) msg.text = text;
@@ -2289,9 +2295,8 @@
      Como el resto del panel, es control a nivel de interfaz, no seguridad real. */
   const KICK_MS = 5 * 60 * 1000;
   const MUTE_MS = 5 * 60 * 1000;
-  const SPAM_MAX = 5;          // mensajes permitidos...
-  const SPAM_WINDOW = 8000;    // ...dentro de estos milisegundos
-  let sentTimes = [];
+  const SPAM_MAX = 5;          // al llegar a 5 mensajes...
+  const SPAM_WINDOW = 60000;   // ...en menos de 1 minuto: aviso. Otro mensaje más: baneo de MUTE_MS.
   let wasKicked = false;
   let noticeFlashUntil = 0;
 
@@ -2302,6 +2307,22 @@
   const chatSendBtn = chatForm.querySelector('.chat-send');
 
   function sNow(){ return Date.now() + serverOffset; }
+
+  // Mensajes enviados en el último minuto (se guarda en el navegador para que recargar no lo reinicie)
+  function sentKey(){ return 'panel-chat-sent-' + (currentUserKey || 'anon'); }
+  function recentSent(){
+    let arr = [];
+    try{ arr = JSON.parse(localStorage.getItem(sentKey())) || []; }catch(e){ arr = []; }
+    const now = Date.now();
+    return arr.filter(function(t){ return now - t < SPAM_WINDOW && t <= now + 5000; });
+  }
+  function saveSent(arr){ try{ localStorage.setItem(sentKey(), JSON.stringify(arr)); }catch(e){} }
+  function announceBan(name){
+    sendChatMsg({
+      name: 'ADMIN', userKey: '__admin__', system: true, ts: Date.now(),
+      text: name + ' ha sido baneado temporalmente del chat (5 minutos) por enviar demasiados mensajes.'
+    });
+  }
   function isKicked(){ return kickUntil > sNow(); }
   function isMuted(){ return muteUntil > sNow(); }
   function fmtCountdown(ms){
@@ -2359,8 +2380,15 @@
     if(muted){
       chatNotice.hidden = false;
       chatNotice.textContent = 'Chat bloqueado por enviar mensajes demasiado rápido. Podrás escribir en ' + fmtCountdown(muteUntil - sNow()) + '.';
-    } else if(Date.now() >= noticeFlashUntil){
-      chatNotice.hidden = true;
+    } else {
+      const rs = isAdminUser() ? [] : recentSent();
+      if(rs.length >= SPAM_MAX){
+        const wait = Math.max(1, Math.ceil((rs[0] + SPAM_WINDOW - Date.now()) / 1000));
+        chatNotice.hidden = false;
+        chatNotice.textContent = 'Aviso: estás enviando demasiados mensajes. Si envías otro en los próximos ' + wait + ' s, no podrás escribir durante 5 minutos.';
+      } else if(Date.now() >= noticeFlashUntil){
+        chatNotice.hidden = true;
+      }
     }
   }
   setInterval(tickPenalties, 1000);
