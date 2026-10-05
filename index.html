@@ -511,6 +511,41 @@
   .chat-fab-n{ position:absolute; top:-7px; right:-3px; min-width:20px; height:20px; padding:0 5px; border-radius:100px; background:var(--accent); color:var(--accent-ink); font-size:.7rem; font-weight:800; display:flex; align-items:center; justify-content:center; }
   .chat-fab-n[hidden]{ display:none; }
 
+  /* ---- chat: responder y borrar propios ---- */
+  .chat-msg{ display:flex; align-items:flex-start; gap:4px; }
+  .chat-msg .chat-bubble{ min-width:0; }
+  .chat-reply-btn{
+    background:none; border:none; color:var(--text-dim); cursor:pointer; width:28px; height:28px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; opacity:.5; flex-shrink:0; margin-top:2px;
+  }
+  .chat-reply-btn:hover{ opacity:1; background:var(--surface); }
+  .chat-reply-btn svg{ width:15px; height:15px; }
+  .chat-quote{
+    display:block; border-left:4px solid hsl(var(--nh,170) 60% 45%); background:rgba(0,0,0,.07);
+    border-radius:6px; padding:4px 8px; margin-bottom:4px; cursor:pointer; overflow:hidden;
+  }
+  [data-theme="dark"] .chat-quote{ background:rgba(255,255,255,.08); }
+  .chat-bubble.media .chat-quote{ margin:3px 3px 4px; }
+  .chat-quote-name{ display:block; font-size:.74rem; font-weight:800; color:hsl(var(--nh,170) 60% 36%); }
+  [data-theme="dark"] .chat-quote-name{ color:hsl(var(--nh,170) 70% 68%); }
+  .chat-quote-text{ display:block; font-size:.8rem; color:var(--text-dim); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:300px; }
+  .chat-reply-bar{
+    display:flex; align-items:center; gap:10px; padding:8px 16px;
+    border-top:1px solid var(--border); background:var(--surface-2);
+  }
+  .chat-reply-bar[hidden]{ display:none; }
+  .chat-reply-bar .rb-info{
+    flex:1; min-width:0; border-left:4px solid hsl(var(--nh,170) 60% 45%); padding:2px 10px;
+    background:var(--surface); border-radius:6px;
+  }
+  .chat-reply-bar .rb-name{ display:block; font-size:.76rem; font-weight:800; color:hsl(var(--nh,170) 60% 36%); }
+  [data-theme="dark"] .chat-reply-bar .rb-name{ color:hsl(var(--nh,170) 70% 68%); }
+  .chat-reply-bar .rb-text{ display:block; font-size:.82rem; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .chat-reply-bar button{ background:none; border:none; color:var(--text-dim); cursor:pointer; display:flex; padding:6px; }
+  .chat-reply-bar button:hover{ color:var(--danger); }
+  @keyframes msgflash{ 0%,60%{ box-shadow:0 0 0 3px var(--accent); } 100%{ box-shadow:0 1px 1px rgba(0,0,0,.14); } }
+  .chat-msg.flash .chat-bubble{ animation:msgflash 1.5s ease-out; }
+
   #loginBackdrop .modal-box{ max-width:380px; }
 
   footer{ text-align:center; padding:26px; color:var(--text-dim); font-size:.76rem; }
@@ -696,6 +731,7 @@
           <button type="button" class="chat-fab" id="chatFab" hidden aria-label="Ir al último mensaje"><i data-lucide="chevron-down"></i><span class="chat-fab-n" id="chatFabN" hidden>0</span></button>
         </div>
         <div class="chat-notice" id="chatNotice" hidden></div>
+        <div class="chat-reply-bar" id="chatReplyBar" hidden></div>
         <div class="chat-preview" id="chatPreview" hidden></div>
         <form class="chat-input-row" id="chatForm">
           <input type="file" id="chatFile" hidden>
@@ -1336,6 +1372,10 @@
     });
   }
   function removeChatMsg(id){
+    const target = chatMsgs.find(function(x){ return x.id === id; });
+    if(!target) return;
+    const mine = !!(target.userKey && target.userKey === currentUserKey);
+    if(!(mine || editMode)) return;
     if(chatRef){ chatRef.child(id).remove(); }
     else{
       chatMsgs = chatMsgs.filter(function(x){ return x.id !== id; });
@@ -1940,6 +1980,49 @@
     clearChat();
   });
 
+  /* ---- responder a un mensaje ---- */
+  const chatReplyBar = document.getElementById('chatReplyBar');
+  let replyTo = null;
+  function msgSnippet(m){
+    if(m.text) return m.text.length > 120 ? m.text.slice(0, 120) + '…' : m.text;
+    if(m.type === 'image') return 'Foto';
+    if(m.type === 'file') return 'Archivo · ' + (m.fileName || '');
+    return '';
+  }
+  function renderReplyBar(){
+    chatReplyBar.innerHTML = '';
+    if(!replyTo){ chatReplyBar.hidden = true; return; }
+    chatReplyBar.hidden = false;
+    const info = document.createElement('div');
+    info.className = 'rb-info';
+    info.style.setProperty('--nh', String(nameHue(replyTo.userKey || replyTo.name || '')));
+    const nm = document.createElement('span'); nm.className = 'rb-name'; nm.textContent = replyTo.name;
+    const tx = document.createElement('span'); tx.className = 'rb-text'; tx.textContent = replyTo.text;
+    info.appendChild(nm); info.appendChild(tx);
+    const x = document.createElement('button');
+    x.type = 'button'; x.setAttribute('aria-label', 'Cancelar respuesta');
+    x.innerHTML = '<i data-lucide="x"></i>';
+    x.addEventListener('click', function(){ replyTo = null; renderReplyBar(); });
+    chatReplyBar.appendChild(info); chatReplyBar.appendChild(x);
+    if(window.lucide) lucide.createIcons();
+  }
+  function startReply(m){
+    replyTo = { id: m.id || '', name: m.name || 'Anónimo', userKey: m.userKey || '', text: msgSnippet(m) };
+    renderReplyBar();
+    chatInput.focus();
+  }
+  function jumpToMsg(id){
+    if(!id) return;
+    const el = chatList.querySelector('[data-mid="' + String(id).replace(/"/g, '\\"') + '"]');
+    if(!el) return;
+    chatList.scrollTo({
+      top: el.getBoundingClientRect().top - chatList.getBoundingClientRect().top + chatList.scrollTop - chatList.clientHeight / 2,
+      behavior: 'smooth'
+    });
+    el.classList.add('flash');
+    setTimeout(function(){ el.classList.remove('flash'); }, 1600);
+  }
+
   function renderChat(){
     const open = isChatOpen();
     const nearBottom = (chatList.scrollHeight - chatList.scrollTop - chatList.clientHeight) < 80;
@@ -1988,6 +2071,7 @@
 
       const wrap = document.createElement('div');
       wrap.className = 'chat-msg ' + (own ? 'own' : 'other') + (grouped ? ' grouped' : ' first');
+      wrap.dataset.mid = m.id || '';
       const bubble = document.createElement('div');
       bubble.className = 'chat-bubble';
 
@@ -1997,6 +2081,17 @@
         nameEl.style.setProperty('--nh', String(nameHue(m.userKey || m.name || '')));
         nameEl.textContent = m.name || 'Anónimo';
         bubble.appendChild(nameEl);
+      }
+
+      if(m.reply){
+        const q = document.createElement('div');
+        q.className = 'chat-quote';
+        q.style.setProperty('--nh', String(nameHue(m.reply.userKey || m.reply.name || '')));
+        const qn = document.createElement('span'); qn.className = 'chat-quote-name'; qn.textContent = m.reply.name || 'Anónimo';
+        const qt = document.createElement('span'); qt.className = 'chat-quote-text'; qt.textContent = m.reply.text || '';
+        q.appendChild(qn); q.appendChild(qt);
+        q.addEventListener('click', function(){ jumpToMsg(m.reply.id); });
+        bubble.appendChild(q);
       }
 
       if(m.type === 'image' && /^data:image\//.test(m.data || '')){
@@ -2028,7 +2123,7 @@
       meta.className = 'cm-meta';
       const delMsg = document.createElement('button');
       delMsg.type = 'button';
-      delMsg.className = 'task-del admin-only';
+      delMsg.className = 'task-del' + (own ? '' : ' admin-only');
       delMsg.setAttribute('aria-label', 'Borrar mensaje');
       delMsg.innerHTML = '<i data-lucide="trash-2"></i>';
       delMsg.addEventListener('click', function(){ removeChatMsg(m.id); });
@@ -2041,7 +2136,15 @@
       }
       bubble.appendChild(meta);
 
-      wrap.appendChild(bubble);
+      const replyBtn = document.createElement('button');
+      replyBtn.type = 'button';
+      replyBtn.className = 'chat-reply-btn';
+      replyBtn.setAttribute('aria-label', 'Responder');
+      replyBtn.title = 'Responder';
+      replyBtn.innerHTML = '<i data-lucide="reply"></i>';
+      replyBtn.addEventListener('click', function(){ startReply(m); });
+      if(own){ wrap.appendChild(replyBtn); wrap.appendChild(bubble); }
+      else { wrap.appendChild(bubble); wrap.appendChild(replyBtn); }
       chatList.appendChild(wrap);
       prev = m;
     });
@@ -2168,8 +2271,12 @@
       msg.fileName = pending.fileName; msg.size = pending.size;
       if(pending.w){ msg.w = pending.w; msg.h = pending.h; }
     }
+    if(replyTo){
+      msg.reply = { id: replyTo.id, name: replyTo.name, userKey: replyTo.userKey, text: replyTo.text };
+    }
     forceBottom = true;
     sendChatMsg(msg);
+    replyTo = null; renderReplyBar();
     chatInput.value = '';
     pending = null; chatFile.value = ''; renderPreview();
   });
