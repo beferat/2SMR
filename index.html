@@ -378,7 +378,9 @@
   .chat-bubble{ padding:10px 14px; border-radius:15px; font-size:.9rem; font-weight:500; overflow-wrap:break-word; white-space:pre-wrap; }
   .chat-msg.other .chat-bubble{ background:var(--surface-2); border:1px solid var(--border); border-bottom-left-radius:4px; }
   .chat-msg.own .chat-bubble{ background:var(--accent); color:var(--accent-ink); border-bottom-right-radius:4px; }
-  .chat-msg-time{ font-size:.66rem; color:var(--text-dim); padding:0 4px; }
+  .chat-msg-time{ font-size:.66rem; color:var(--text-dim); padding:0 4px; display:flex; align-items:center; gap:4px; }
+  .chat-msg-time .task-del{ padding:2px; }
+  .chat-msg-time .task-del svg{ width:13px; height:13px; }
   .chat-input-row{ display:flex; gap:10px; padding:14px 16px; border-top:1px solid var(--border); background:var(--surface); align-items:center; }
   .chat-input-row input[type="text"]{ flex:1; }
   .chat-send{
@@ -733,7 +735,7 @@
      Al igual que la contraseña de edición, esto vive en el código: cualquiera que abra
      el archivo puede leer esta lista, así que no la uses para nada sensible. */
   const USERS = {
-    "mgamfer": { password: "m1234", name: "Marco" },
+    "mgamfer": { password: "m1234", name: "Marco", admin: true },
     "smuncon": { password: "s1234", name: "Sergio" },
     "iramfer": { password: "i1234", name: "Iker" },
     "mafalor": { password: "m1234", name: "Afanador" },
@@ -748,10 +750,11 @@
     "dmarper": { password: "d1234", name: "David Martin" },
     "ifermar": { password: "i1234", name: "Izan" },
     "acidben": { password: "a1234", name: "Alvaro Cid" },
-    "": { password: "", name: "" },
-    "": { password: "", name: "" },
-    "": { password: "", name: "" },
+    /* Para añadir a alguien más, copia una línea de arriba. Con admin: true tendrá control total. */
   };
+  function isAdminUser(){
+    return !!(currentUserKey && Object.prototype.hasOwnProperty.call(USERS, currentUserKey) && USERS[currentUserKey].admin);
+  }
 
   let currentUsername = '';
   let currentUserKey = '';
@@ -795,6 +798,9 @@
     dropPresence();
     currentUsername = ''; currentUserKey = '';
     try{ localStorage.removeItem('panel-username'); localStorage.removeItem('panel-userkey'); }catch(e){}
+    editMode = false;
+    try{ sessionStorage.removeItem('panel-edit'); }catch(e){}
+    applyEditModeUI();
     applyUserUI();
     renderPresence();
     openLogin(false);
@@ -802,7 +808,7 @@
   function submitLogin(){
     const key = loginUserInput.value.trim().toLowerCase();
     const pass = loginPassInput.value;
-    const user = USERS[key];
+    const user = (key && Object.prototype.hasOwnProperty.call(USERS, key)) ? USERS[key] : null;
     if(!user || user.password !== pass){
       loginError.textContent = 'Usuario o contraseña incorrectos.';
       loginError.classList.add('show');
@@ -812,6 +818,11 @@
     currentUserKey = key;
     try{ localStorage.setItem('panel-username', currentUsername); localStorage.setItem('panel-userkey', currentUserKey); }catch(e){}
     applyUserUI();
+    if(isAdminUser()){
+      editMode = true;
+      try{ sessionStorage.setItem('panel-edit','1'); }catch(e){}
+      applyEditModeUI();
+    }
     announcePresence();
     renderPresence();
     closeLogin();
@@ -832,6 +843,9 @@
   const presenceToggle = document.getElementById('presenceToggle');
   const presencePanel = document.getElementById('presencePanel');
   const presenceCount = document.getElementById('presenceCount');
+  let kicksRef = null, mutesRef = null;
+  let kicksMap = {}, mutesMap = {};
+  let kickUntil = 0, muteUntil = 0, serverOffset = 0;
   let onlineUsers = {};
   let myPresenceConnRef = null;
   let presenceConnected = false;
@@ -872,7 +886,8 @@
       nm.className = 'pr-name';
       nm.textContent = u.name + (isMe ? ' (tú)' : '');
       row.appendChild(av); row.appendChild(nm);
-      if(!isMe){
+      const targetIsAdmin = Object.prototype.hasOwnProperty.call(USERS, k) && USERS[k].admin;
+      if(!isMe && !targetIsAdmin){
         const kb = document.createElement('button');
         kb.type = 'button';
         kb.className = 'kick-btn admin-only';
@@ -943,6 +958,7 @@
 
   let editMode = false;
   try{ editMode = sessionStorage.getItem('panel-edit') === '1'; }catch(e){}
+  if(isAdminUser()) editMode = true;
 
   function applyEditModeUI(){
     body.classList.toggle('edit-mode', editMode);
@@ -963,6 +979,10 @@
     if(editMode){
       editMode = false;
       try{ sessionStorage.removeItem('panel-edit'); }catch(e){}
+      applyEditModeUI();
+    } else if(isAdminUser()){
+      editMode = true;
+      try{ sessionStorage.setItem('panel-edit','1'); }catch(e){}
       applyEditModeUI();
     } else {
       openModal();
@@ -1103,9 +1123,6 @@
 
   const firebaseUsable = firebaseConfig.apiKey && firebaseConfig.apiKey !== 'TU_API_KEY' && window.firebase;
   let tasksRef = null, avisosRef = null, chatRef = null;
-  let kicksRef = null, mutesRef = null;
-  let kicksMap = {}, mutesMap = {};
-  let kickUntil = 0, muteUntil = 0, serverOffset = 0;
   let tasks = [];
   let avisos = [];
   let chatMsgs = [];
@@ -1238,6 +1255,14 @@
       renderAvisos();
     }
   }
+  function removeChatMsg(id){
+    if(chatRef){ chatRef.child(id).remove(); }
+    else{
+      chatMsgs = chatMsgs.filter(function(x){ return x.id !== id; });
+      saveLocal('panel-chat', chatMsgs);
+      renderChat();
+    }
+  }
   function sendChatMsg(msg){
     if(chatRef){ chatRef.push(msg); }
     else{
@@ -1272,7 +1297,9 @@
     let level = 'neutral';
     if(totalHours <= 24) level = 'danger'; else if(totalHours <= 48) level = 'warn';
     bar.className = 'countdown-bar ' + level;
-    bar.innerHTML = '<i data-lucide="alarm-clock"></i><span><strong>' + (exam.subject ? exam.subject + ': ' : '') + exam.title + '</strong> — quedan ' + days + ' d ' + hours + ' h</span>';
+    bar.innerHTML = '<i data-lucide="alarm-clock"></i><span><strong></strong></span>';
+    bar.querySelector('strong').textContent = (exam.subject ? exam.subject + ': ' : '') + exam.title;
+    bar.querySelector('span').appendChild(document.createTextNode(' — quedan ' + days + ' d ' + hours + ' h'));
     if(window.lucide) lucide.createIcons();
   }
   setInterval(renderCountdown, 60000);
@@ -1860,6 +1887,14 @@
       const timeEl = document.createElement('div');
       timeEl.className = 'chat-msg-time';
       timeEl.textContent = fmtTime(m.ts);
+      const delMsg = document.createElement('button');
+      delMsg.type = 'button';
+      delMsg.className = 'task-del admin-only';
+      delMsg.setAttribute('aria-label', 'Borrar mensaje');
+      delMsg.style.display = 'inline-flex';
+      delMsg.innerHTML = '<i data-lucide="trash-2"></i>';
+      delMsg.addEventListener('click', function(){ removeChatMsg(m.id); });
+      timeEl.appendChild(delMsg);
       wrap.appendChild(nameEl); wrap.appendChild(bubble); wrap.appendChild(timeEl);
       chatList.appendChild(wrap);
     });
@@ -1962,6 +1997,7 @@
     if(isKicked() || isMuted()) return;
     const nowTs = Date.now();
     sentTimes = sentTimes.filter(function(t){ return nowTs - t < SPAM_WINDOW; });
+    if(isAdminUser()) sentTimes = [];
     if(sentTimes.length >= SPAM_MAX){
       sentTimes = [];
       setPenalty('mutes', currentUserKey, sNow() + MUTE_MS, 'antispam');
@@ -2039,8 +2075,8 @@
   function tickPenalties(){
     const kEntry = currentUserKey && kicksMap[currentUserKey];
     const mEntry = currentUserKey && mutesMap[currentUserKey];
-    kickUntil = (kEntry && kEntry.until) || 0;
-    muteUntil = (mEntry && mEntry.until) || 0;
+    kickUntil = (!isAdminUser() && kEntry && kEntry.until) || 0;
+    muteUntil = (!isAdminUser() && mEntry && mEntry.until) || 0;
     const kicked = isKicked();
     if(kicked){
       kickOverlay.classList.add('open');
