@@ -10,6 +10,7 @@
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <style>
   :root{
     --bg:#eef0f4; --surface:#ffffff; --surface-2:#e7e9ef; --border:#d4d8e1;
@@ -222,8 +223,7 @@
   .cal-day.festivo.muted{ opacity:.35; }
   .cal-day.selected{ background:var(--accent); color:var(--accent-ink); }
   .cal-dots{ display:flex; gap:3px; position:absolute; bottom:7px; }
-  .cal-dots span{ width:7px; height:7px; border-radius:50%; background:var(--accent); }
-  .cal-day.selected .cal-dots span{ box-shadow:0 0 0 1.5px var(--accent-ink); }
+  .cal-dots span{ width:5px; height:5px; border-radius:50%; background:var(--accent); }
   .cal-dots span.dot-festivo{ background:var(--danger); }
   .cal-day.selected .cal-dots span{ background:var(--accent-ink); }
   .cal-legend{ display:flex; flex-wrap:wrap; gap:14px; margin-top:14px; padding:0 4px; }
@@ -286,7 +286,6 @@
   .task-tag.tarea{ background:var(--sor); color:var(--sor-t); }
   .task-tag.examen{ background:var(--web); color:var(--web-t); }
   .task-date{ font-size:.74rem; color:var(--text-dim); font-weight:700; }
-  .task-subj{ font-size:.66rem; font-weight:900; letter-spacing:.03em; padding:2px 8px; border-radius:6px; }
   .task-del{ background:none; border:none; color:var(--text-dim); cursor:pointer; flex-shrink:0; display:flex; padding:5px; border-radius:7px; }
   .task-del:hover{ color:var(--danger); background:var(--surface); }
   .task-del svg{ width:18px; height:18px; }
@@ -378,176 +377,15 @@
   .chat-bubble{ padding:10px 14px; border-radius:15px; font-size:.9rem; font-weight:500; overflow-wrap:break-word; white-space:pre-wrap; }
   .chat-msg.other .chat-bubble{ background:var(--surface-2); border:1px solid var(--border); border-bottom-left-radius:4px; }
   .chat-msg.own .chat-bubble{ background:var(--accent); color:var(--accent-ink); border-bottom-right-radius:4px; }
-  .chat-msg-time{ font-size:.66rem; color:var(--text-dim); padding:0 4px; display:flex; align-items:center; gap:4px; }
-  .chat-msg-time .task-del{ padding:2px; }
-  .chat-msg-time .task-del svg{ width:13px; height:13px; }
-  .chat-input-row{ display:flex; gap:10px; padding:14px 16px; border-top:1px solid var(--border); background:var(--surface); align-items:center; }
-  .chat-input-row input[type="text"]{ flex:1; }
+  .chat-msg-time{ font-size:.66rem; color:var(--text-dim); padding:0 4px; }
+  .chat-input-row{ display:flex; gap:10px; padding:14px 16px; border-top:1px solid var(--border); background:var(--surface); }
+  .chat-input-row input{ flex:1; }
   .chat-send{
     background:var(--accent); color:var(--accent-ink); border:none; border-radius:10px;
-    width:42px; height:42px; flex-shrink:0; display:flex; align-items:center; justify-content:center; cursor:pointer;
+    width:42px; flex-shrink:0; display:flex; align-items:center; justify-content:center; cursor:pointer;
   }
   .chat-send svg{ width:18px; height:18px; }
 
-  /* ---- chat: adjuntos y no leídos ---- */
-  .chat-attach{
-    background:var(--surface-2); color:var(--text); border:1px solid var(--border); border-radius:10px;
-    width:42px; height:42px; flex-shrink:0; display:flex; align-items:center; justify-content:center; cursor:pointer;
-  }
-  .chat-attach:hover{ background:var(--border); }
-  .chat-attach svg{ width:18px; height:18px; }
-  .chat-card.dragover{ outline:3px dashed var(--accent); outline-offset:-6px; }
-
-  .chat-preview{
-    display:flex; align-items:center; gap:12px; padding:10px 16px;
-    border-top:1px solid var(--border); background:var(--surface-2);
-  }
-  .chat-preview[hidden]{ display:none; }
-  .chat-preview img{ width:48px; height:48px; object-fit:cover; border-radius:8px; }
-  .chat-preview .pv-icon{ width:48px; height:48px; border-radius:8px; background:var(--surface); display:flex; align-items:center; justify-content:center; color:var(--accent); }
-  .chat-preview .pv-info{ flex:1; min-width:0; font-size:.82rem; font-weight:700; }
-  .chat-preview .pv-info small{ display:block; color:var(--text-dim); font-weight:600; }
-  .chat-preview .pv-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .chat-preview button{ background:none; border:none; color:var(--text-dim); cursor:pointer; display:flex; padding:6px; }
-  .chat-preview button:hover{ color:var(--danger); }
-
-  .chat-bubble.media{ padding:5px; }
-  .chat-bubble .chat-img{ display:block; max-width:min(280px,100%); max-height:320px; width:auto; height:auto; border-radius:11px; cursor:zoom-in; }
-  .chat-bubble .chat-cap{ padding:6px 9px 3px; }
-  .chat-file{
-    display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:11px;
-    background:rgba(0,0,0,.12); color:inherit; text-decoration:none; font-weight:700; font-size:.85rem; min-width:170px;
-  }
-  .chat-file svg{ width:22px; height:22px; flex-shrink:0; }
-  .chat-file small{ display:block; opacity:.75; font-weight:600; font-size:.72rem; }
-  .chat-file .cf-name{ overflow-wrap:anywhere; }
-
-  .chat-divider{
-    align-self:center; font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em;
-    background:var(--accent); color:var(--accent-ink); padding:4px 14px; border-radius:100px; margin:6px 0;
-  }
-  .nav-badge{
-    margin-left:auto; min-width:20px; height:20px; padding:0 6px; border-radius:100px;
-    background:var(--danger); color:#fff; font-size:.7rem; font-weight:800;
-    display:inline-flex; align-items:center; justify-content:center;
-  }
-  .nav-badge[hidden]{ display:none; }
-
-  .lightbox{
-    position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:200;
-    display:flex; align-items:center; justify-content:center; padding:20px; cursor:zoom-out;
-  }
-  .lightbox img{ max-width:100%; max-height:100%; border-radius:10px; }
-
-  .presence-panel{ min-width:250px; }
-  .presence-row .pr-name{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .kick-btn{
-    background:var(--danger); color:#fff; border:none; border-radius:7px; padding:4px 10px;
-    font-family:inherit; font-size:.72rem; font-weight:800; cursor:pointer; flex-shrink:0;
-  }
-  .kick-btn:hover{ opacity:.88; }
-
-  .chat-notice{
-    padding:9px 16px; font-size:.82rem; font-weight:700; border-top:1px solid var(--border);
-    background:color-mix(in srgb, var(--danger) 16%, var(--surface)); color:var(--danger);
-  }
-  .chat-notice[hidden]{ display:none; }
-  .chat-input-row input:disabled, .chat-attach:disabled, .chat-send:disabled{ opacity:.5; cursor:not-allowed; }
-
-  .kick-overlay{ z-index:300; background:rgba(0,0,0,.88); }
-  .kick-overlay .modal-box{ text-align:center; max-width:380px; }
-  .kick-time{ font-size:2.8rem; font-weight:800; color:var(--danger); margin:6px 0 14px; font-variant-numeric:tabular-nums; }
-
-  /* ---- chat estilo mensajería ---- */
-  .chat-card{ height:min(78vh,720px); }
-  .chat-header{ display:flex; align-items:center; gap:12px; padding:10px 16px; background:var(--surface); border-bottom:1px solid var(--border); }
-  .chat-avatar{ width:42px; height:42px; border-radius:50%; background:var(--accent); color:var(--accent-ink); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-  .chat-avatar svg{ width:20px; height:20px; }
-  .chat-header-info{ flex:1; min-width:0; display:flex; flex-direction:column; }
-  .chat-header-info strong{ font-size:.98rem; font-weight:800; }
-  .chat-header-info small{ font-size:.76rem; color:var(--text-dim); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .chat-clear{ display:flex; align-items:center; gap:6px; background:var(--surface-2); color:var(--danger); border:1px solid var(--border); border-radius:100px; padding:7px 13px; font-family:inherit; font-size:.78rem; font-weight:800; cursor:pointer; flex-shrink:0; }
-  .chat-clear:hover{ background:var(--border); }
-  .chat-clear svg{ width:15px; height:15px; }
-  .chat-body{ flex:1; min-height:0; position:relative; display:flex; }
-  .chat-list{
-    gap:2px; padding:14px clamp(10px,3vw,22px);
-    background-color:color-mix(in srgb, var(--accent) 8%, var(--bg));
-    background-image:radial-gradient(color-mix(in srgb, var(--accent) 16%, transparent) 1.2px, transparent 1.5px);
-    background-size:22px 22px;
-  }
-  .chat-msg{ max-width:min(78%,520px); margin-top:8px; display:block; }
-  .chat-msg.grouped{ margin-top:0; }
-  .chat-msg.own{ align-self:flex-end; }
-  .chat-msg.other{ align-self:flex-start; }
-  .chat-bubble{ position:relative; padding:6px 9px 6px 11px; border-radius:11px; font-size:.92rem; line-height:1.35; font-weight:500; overflow-wrap:anywhere; white-space:pre-wrap; box-shadow:0 1px 1px rgba(0,0,0,.14); }
-  .chat-bubble::after{ content:''; display:block; clear:both; }
-  .chat-msg.other .chat-bubble{ background:var(--surface); border:none; color:var(--text); }
-  .chat-msg.own .chat-bubble{ background:color-mix(in srgb, var(--accent) 24%, var(--surface)); color:var(--text); }
-  .chat-msg.first.other .chat-bubble{ border-top-left-radius:0; }
-  .chat-msg.first.own .chat-bubble{ border-top-right-radius:0; }
-  .chat-msg.first .chat-bubble::before{ content:''; position:absolute; top:0; width:9px; height:11px; background:inherit; }
-  .chat-msg.first.other .chat-bubble::before{ left:-8px; clip-path:polygon(100% 0,100% 100%,0 0); }
-  .chat-msg.first.own .chat-bubble::before{ right:-8px; clip-path:polygon(0 0,100% 0,0 100%); }
-  .chat-msg-name{ display:block; font-size:.78rem; font-weight:800; padding:0; margin-bottom:2px; color:hsl(var(--nh,170) 60% 36%); }
-  [data-theme="dark"] .chat-msg-name{ color:hsl(var(--nh,170) 70% 68%); }
-  .chat-bubble.media{ padding:3px 3px 5px; }
-  .chat-bubble.media .chat-msg-name{ padding:3px 6px 0; }
-  .chat-bubble .chat-cap{ display:block; padding:6px 8px 0; }
-  .cm-meta{ float:right; margin:7px 0 -3px 12px; display:inline-flex; align-items:center; gap:3px; font-size:.68rem; color:var(--text-dim); font-weight:600; white-space:nowrap; line-height:1; }
-  .chat-bubble.media .cm-meta{ margin-right:6px; }
-  .cm-meta svg{ width:15px; height:15px; color:var(--accent); }
-  .cm-meta .task-del{ padding:1px; margin-right:2px; }
-  .cm-meta .task-del svg{ width:13px; height:13px; color:inherit; }
-  .chat-day{ align-self:center; margin:12px 0 6px; padding:5px 12px; border-radius:8px; background:var(--surface); color:var(--text-dim); font-size:.74rem; font-weight:700; box-shadow:0 1px 1px rgba(0,0,0,.1); }
-  .chat-divider{ margin:10px 0 4px; }
-  .chat-input-row{ background:var(--surface-2); padding:10px 12px; gap:8px; }
-  .chat-input-row input[type="text"]{ border-radius:100px; padding:11px 16px; background:var(--surface); border:1px solid transparent; }
-  .chat-attach{ border-radius:50%; background:transparent; border:none; color:var(--text-dim); }
-  .chat-send{ border-radius:50%; width:44px; height:44px; }
-  .chat-fab{ position:absolute; right:14px; bottom:14px; width:42px; height:42px; border-radius:50%; background:var(--surface); color:var(--text-dim); border:1px solid var(--border); box-shadow:0 2px 8px rgba(0,0,0,.2); display:flex; align-items:center; justify-content:center; cursor:pointer; }
-  .chat-fab[hidden]{ display:none; }
-  .chat-fab svg{ width:20px; height:20px; }
-  .chat-fab-n{ position:absolute; top:-7px; right:-3px; min-width:20px; height:20px; padding:0 5px; border-radius:100px; background:var(--accent); color:var(--accent-ink); font-size:.7rem; font-weight:800; display:flex; align-items:center; justify-content:center; }
-  .chat-fab-n[hidden]{ display:none; }
-
-  /* ---- chat: responder y borrar propios ---- */
-  .chat-msg{ display:flex; align-items:flex-start; gap:4px; }
-  .chat-msg .chat-bubble{ min-width:0; }
-  .chat-reply-btn{
-    background:none; border:none; color:var(--text-dim); cursor:pointer; width:28px; height:28px; border-radius:50%;
-    display:flex; align-items:center; justify-content:center; opacity:.5; flex-shrink:0; margin-top:2px;
-  }
-  .chat-reply-btn:hover{ opacity:1; background:var(--surface); }
-  .chat-reply-btn svg{ width:15px; height:15px; }
-  .chat-quote{
-    display:block; border-left:4px solid hsl(var(--nh,170) 60% 45%); background:rgba(0,0,0,.07);
-    border-radius:6px; padding:4px 8px; margin-bottom:4px; cursor:pointer; overflow:hidden;
-  }
-  [data-theme="dark"] .chat-quote{ background:rgba(255,255,255,.08); }
-  .chat-bubble.media .chat-quote{ margin:3px 3px 4px; }
-  .chat-quote-name{ display:block; font-size:.74rem; font-weight:800; color:hsl(var(--nh,170) 60% 36%); }
-  [data-theme="dark"] .chat-quote-name{ color:hsl(var(--nh,170) 70% 68%); }
-  .chat-quote-text{ display:block; font-size:.8rem; color:var(--text-dim); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:300px; }
-  .chat-reply-bar{
-    display:flex; align-items:center; gap:10px; padding:8px 16px;
-    border-top:1px solid var(--border); background:var(--surface-2);
-  }
-  .chat-reply-bar[hidden]{ display:none; }
-  .chat-reply-bar .rb-info{
-    flex:1; min-width:0; border-left:4px solid hsl(var(--nh,170) 60% 45%); padding:2px 10px;
-    background:var(--surface); border-radius:6px;
-  }
-  .chat-reply-bar .rb-name{ display:block; font-size:.76rem; font-weight:800; color:hsl(var(--nh,170) 60% 36%); }
-  [data-theme="dark"] .chat-reply-bar .rb-name{ color:hsl(var(--nh,170) 70% 68%); }
-  .chat-reply-bar .rb-text{ display:block; font-size:.82rem; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .chat-reply-bar button{ background:none; border:none; color:var(--text-dim); cursor:pointer; display:flex; padding:6px; }
-  .chat-reply-bar button:hover{ color:var(--danger); }
-  @keyframes msgflash{ 0%,60%{ box-shadow:0 0 0 3px var(--accent); } 100%{ box-shadow:0 1px 1px rgba(0,0,0,.14); } }
-  .chat-msg.flash .chat-bubble{ animation:msgflash 1.5s ease-out; }
-
-  .chat-msg.sys .chat-bubble{ background:color-mix(in srgb, var(--danger) 14%, var(--surface)); border-left:4px solid var(--danger); }
-  .chat-msg.sys .chat-msg-name{ color:var(--danger); letter-spacing:.04em; }
   #loginBackdrop .modal-box{ max-width:380px; }
 
   footer{ text-align:center; padding:26px; color:var(--text-dim); font-size:.76rem; }
@@ -577,10 +415,6 @@
       <div class="presence-panel" id="presencePanel"></div>
     </div>
     <span class="sync-badge local" id="syncBadge"><span class="sync-dot"></span>Local</span>
-    <button class="lock-toggle" id="lockToggle" aria-label="Modo edición">
-      <span class="dot"><i data-lucide="lock" id="lockIcon"></i></span>
-      <span id="lockLabel">Solo lectura</span>
-    </button>
     <button class="theme-toggle" id="themeToggle" aria-label="Cambiar tema">
       <span class="dot"><i data-lucide="sun" id="themeIcon"></i></span>
       <span id="themeLabel">Claro</span>
@@ -621,7 +455,10 @@
         </div>
         <div class="cal-grid" id="calGrid"></div>
         <div class="cal-legend">
-          <span id="calSubjLegend" style="display:contents;"></span>
+          <div class="legend-item" style="display:flex;align-items:center;gap:7px;">
+            <span class="legend-swatch sw-task" style="width:10px;height:10px;border-radius:50%;display:inline-block;"></span>
+            <span>Tarea / examen</span>
+          </div>
           <div class="legend-item" style="display:flex;align-items:center;gap:7px;">
             <span class="legend-swatch sw-festivo" style="width:10px;height:10px;border-radius:50%;display:inline-block;"></span>
             <span>Festivo / no lectivo</span>
@@ -644,16 +481,12 @@
               </select>
             </div>
             <div class="field">
-              <label for="taskSubject">Asignatura</label>
-              <select id="taskSubject" required></select>
-            </div>
-            <div class="field">
               <label for="taskDate">Fecha</label>
               <input type="date" id="taskDate" required>
             </div>
             <button type="submit" class="btn-add"><i data-lucide="plus"></i>Añadir</button>
           </form>
-          <p class="readonly-hint"><i data-lucide="lock"></i>Modo solo lectura. Desbloquea con el candado de arriba para añadir tareas.</p>
+          <p class="readonly-hint"><i data-lucide="lock"></i>Solo las personas con permiso de administrador pueden añadir tareas.</p>
 
           <div class="filters">
             <button class="filter-btn active" data-filter="todos">Todos</button>
@@ -713,32 +546,20 @@
           </div>
           <button type="submit" class="btn-add"><i data-lucide="megaphone"></i>Publicar aviso</button>
         </form>
-        <p class="readonly-hint"><i data-lucide="lock"></i>Modo solo lectura. Desbloquea con el candado de arriba para publicar avisos.</p>
+        <p class="readonly-hint"><i data-lucide="lock"></i>Solo las personas con permiso de administrador pueden publicar avisos.</p>
       </div>
       <div class="task-list" id="avisosList" style="gap:12px;"></div>
     </section>
 
     <section class="page" id="page-chat" data-page="chat">
-      <div class="card chat-card" id="chatCard">
-        <div class="chat-header">
-          <span class="chat-avatar"><i data-lucide="users"></i></span>
-          <div class="chat-header-info">
-            <strong>Chat de clase</strong>
-            <small id="chatSub">2SMR</small>
-          </div>
-          <button type="button" class="chat-clear admin-only" id="chatClear" title="Vaciar todo el chat" aria-label="Vaciar chat"><i data-lucide="trash-2"></i><span>Vaciar chat</span></button>
-        </div>
-        <div class="chat-body">
-          <div class="chat-list" id="chatList"></div>
-          <button type="button" class="chat-fab" id="chatFab" hidden aria-label="Ir al último mensaje"><i data-lucide="chevron-down"></i><span class="chat-fab-n" id="chatFabN" hidden>0</span></button>
-        </div>
-        <div class="chat-notice" id="chatNotice" hidden></div>
-        <div class="chat-reply-bar" id="chatReplyBar" hidden></div>
-        <div class="chat-preview" id="chatPreview" hidden></div>
+      <div class="section-head">
+        <h2>Chat de clase</h2>
+        <p>En tiempo real — se ve tu nombre en cada mensaje</p>
+      </div>
+      <div class="card chat-card">
+        <div class="chat-list" id="chatList"></div>
         <form class="chat-input-row" id="chatForm">
-          <input type="file" id="chatFile" hidden>
-          <button type="button" class="chat-attach" id="chatAttach" aria-label="Adjuntar imagen o archivo"><i data-lucide="paperclip"></i></button>
-          <input type="text" id="chatInput" placeholder="Escribe un mensaje…" autocomplete="off">
+          <input type="text" id="chatInput" placeholder="Escribe un mensaje…" autocomplete="off" required>
           <button type="submit" class="chat-send" aria-label="Enviar"><i data-lucide="send"></i></button>
         </form>
       </div>
@@ -753,7 +574,7 @@
     <button class="index-link" data-target="enlaces"><i data-lucide="link-2"></i>Enlaces</button>
     <button class="index-link" data-target="notas"><i data-lucide="calculator"></i>Notas</button>
     <button class="index-link" data-target="avisos"><i data-lucide="megaphone"></i>Avisos</button>
-    <button class="index-link" data-target="chat"><i data-lucide="message-circle"></i>Chat<span class="nav-badge" id="chatBadge" hidden></span></button>
+    <button class="index-link" data-target="chat"><i data-lucide="message-circle"></i>Chat</button>
   </nav>
 
 </div>
@@ -762,43 +583,30 @@
 
 <div class="modal-backdrop" id="loginBackdrop">
   <div class="modal-box">
-    <h3>Inicia sesión</h3>
-    <p>Usa el usuario y la contraseña que te ha dado la clase.</p>
+    <h3 id="authTitle">Inicia sesión</h3>
+    <p id="authSubtitle">Entra con tu usuario y contraseña de la clase.</p>
+
+    <div class="field" id="authDisplayNameField" style="margin-bottom:10px; display:none;">
+      <label for="authDisplayName">Tu nombre (lo verán los demás)</label>
+      <input type="text" id="authDisplayName" placeholder="Ej. Marco" autocomplete="name">
+    </div>
     <div class="field" style="margin-bottom:10px;">
-      <label for="loginUserInput">Usuario</label>
-      <input type="text" id="loginUserInput" placeholder="tu_usuario" autocomplete="username">
+      <label for="authUsername">Usuario</label>
+      <input type="text" id="authUsername" placeholder="tu_usuario" autocomplete="username">
     </div>
     <div class="field">
-      <label for="loginPassInput">Contraseña</label>
-      <input type="password" id="loginPassInput" placeholder="••••••" autocomplete="current-password">
+      <label for="authPassword">Contraseña</label>
+      <input type="password" id="authPassword" placeholder="Mínimo 6 caracteres" autocomplete="current-password">
     </div>
-    <p class="modal-error" id="loginError">Usuario o contraseña incorrectos.</p>
-    <div class="modal-actions">
-      <button class="btn-ghost" id="loginCancel" style="display:none;">Cancelar</button>
-      <button class="btn-add" id="loginSubmit">Entrar</button>
-    </div>
-  </div>
-</div>
 
-<div class="modal-backdrop kick-overlay" id="kickOverlay">
-  <div class="modal-box">
-    <h3>Has sido expulsado</h3>
-    <p id="kickBy">Un administrador te ha expulsado temporalmente.</p>
-    <div class="kick-time" id="kickTime">5:00</div>
-    <p style="margin-bottom:0;">Podrás volver a entrar cuando termine el tiempo.</p>
-  </div>
-</div>
+    <p class="modal-error" id="authError">Usuario o contraseña incorrectos.</p>
 
-<div class="modal-backdrop" id="modalBackdrop">
-  <div class="modal-box">
-    <h3>Modo edición</h3>
-    <p>Introduce la contraseña para poder añadir o borrar tareas, exámenes y avisos.</p>
-    <input type="password" id="modalPasswordInput" placeholder="Contraseña">
-    <p class="modal-error" id="modalError">Contraseña incorrecta.</p>
     <div class="modal-actions">
-      <button class="btn-ghost" id="modalCancel">Cancelar</button>
-      <button class="btn-add" id="modalSubmit">Entrar</button>
+      <button class="btn-add" id="authSubmit" style="flex:1;">Entrar</button>
     </div>
+    <p style="text-align:center; margin-top:14px; font-size:.84rem;">
+      <a href="#" id="authToggleMode" style="color:var(--accent); font-weight:700; text-decoration:none;">¿No tienes cuenta? Regístrate</a>
+    </p>
   </div>
 </div>
 
@@ -827,53 +635,39 @@
     applyTheme(savedTheme);
   });
 
-  /* ================= USUARIOS (usuario + contraseña para el chat / avisos) =================
-     Añade aquí una entrada por cada compañero: la clave es el usuario (en minúsculas),
-     "password" es su contraseña y "name" el nombre que verán los demás.
-     Al igual que la contraseña de edición, esto vive en el código: cualquiera que abra
-     el archivo puede leer esta lista, así que no la uses para nada sensible. */
-  const USERS = {
-    "mgamfer": { password: "aDMIN", name: "Marco", admin: true },
-    "smuncon": { password: "s1234", name: "Sergio" },
-    "iramfer": { password: "smrsmr", name: "Iker" },
-    "mafalor": { password: "m1234", name: "Afanador" },
-    "hcamcas": { password: "YVXEDA", name: "Hugo" },
-    "ssangue": { password: "KIKIDEJEREZ", name: "Samuel" },
-    "agongal": { password: "230567AFFVGA", name: "Alejandro" },
-    "jmarama": { password: "FEJPWN", name: "Leix" },
-    "rgilgar": { password: "r1234", name: "Rafa" },
-    "agutram": { password: "a1234", name: "Alvaro Guti" },
-    "dcamore": { password: "d1234", name: "David Campos" },
-    "dmarper": { password: "d1234", name: "David Martin" },
-    "ifermar": { password: "i1234", name: "Izan" },
-    "acidben": { password: "a1234", name: "Alvaro Cid" },
-    /* Para añadir a alguien más, copia una línea de arriba. Con admin: true tendrá control total. */
-  };
-  function isAdminUser(){
-    return !!(currentUserKey && Object.prototype.hasOwnProperty.call(USERS, currentUserKey) && USERS[currentUserKey].admin);
-  }
+  /* ================= AUTENTICACIÓN (registro + inicio de sesión reales) =================
+     Ya no hay ninguna lista de usuarios ni contraseñas en este archivo: el registro y el
+     login los gestiona Firebase Authentication, que guarda las contraseñas cifradas en
+     sus servidores — este código nunca las ve ni las guarda.
+     Firebase Authentication pide un email para el método "usuario y contraseña", así que
+     a partir del usuario que la persona elige se genera uno interno (no se usa para
+     enviar correos, solo como identificador). */
+  const AUTH_EMAIL_DOMAIN = '@2smr-panel.app';
+  function usernameToEmail(u){ return u.trim().toLowerCase().replace(/[^a-z0-9_.-]/g,'') + AUTH_EMAIL_DOMAIN; }
 
   let currentUsername = '';
-  let currentUserKey = '';
-  try{
-    currentUsername = localStorage.getItem('panel-username') || '';
-    currentUserKey = localStorage.getItem('panel-userkey') || '';
-  }catch(e){}
+  let currentUserKey = ''; // uid de Firebase Auth
+  let isAdmin = false;
+  let authMode = 'login'; // 'login' | 'register'
 
   const userBadge = document.getElementById('userBadge');
   const userAvatar = document.getElementById('userAvatar');
   const userNameLabel = document.getElementById('userNameLabel');
   const changeNameBtn = document.getElementById('changeNameBtn');
   const loginBackdrop = document.getElementById('loginBackdrop');
-  const loginUserInput = document.getElementById('loginUserInput');
-  const loginPassInput = document.getElementById('loginPassInput');
-  const loginError = document.getElementById('loginError');
-  const loginSubmit = document.getElementById('loginSubmit');
-  const loginCancel = document.getElementById('loginCancel');
+  const authTitle = document.getElementById('authTitle');
+  const authSubtitle = document.getElementById('authSubtitle');
+  const authDisplayNameField = document.getElementById('authDisplayNameField');
+  const authDisplayName = document.getElementById('authDisplayName');
+  const authUsername = document.getElementById('authUsername');
+  const authPassword = document.getElementById('authPassword');
+  const authError = document.getElementById('authError');
+  const authSubmit = document.getElementById('authSubmit');
+  const authToggleMode = document.getElementById('authToggleMode');
 
   function applyUserUI(){
     if(currentUsername){
-      userNameLabel.textContent = currentUsername;
+      userNameLabel.textContent = currentUsername + (isAdmin ? ' · admin' : '');
       userAvatar.textContent = currentUsername.trim().slice(0,1).toUpperCase();
     } else {
       userNameLabel.textContent = 'Sin sesión';
@@ -882,54 +676,82 @@
   }
   applyUserUI();
 
-  function openLogin(isChange){
-    loginError.classList.remove('show');
-    loginUserInput.value = isChange ? currentUserKey : '';
-    loginPassInput.value = '';
-    loginCancel.style.display = isChange ? 'inline-flex' : 'none';
+  function setAuthMode(mode){
+    authMode = mode;
+    authError.classList.remove('show');
+    if(mode === 'register'){
+      authTitle.textContent = 'Crea tu cuenta';
+      authSubtitle.textContent = 'Elige un usuario y una contraseña para esta clase.';
+      authDisplayNameField.style.display = 'flex';
+      authSubmit.textContent = 'Registrarme';
+      authToggleMode.textContent = '¿Ya tienes cuenta? Inicia sesión';
+    } else {
+      authTitle.textContent = 'Inicia sesión';
+      authSubtitle.textContent = 'Entra con tu usuario y contraseña de la clase.';
+      authDisplayNameField.style.display = 'none';
+      authSubmit.textContent = 'Entrar';
+      authToggleMode.textContent = '¿No tienes cuenta? Regístrate';
+    }
+  }
+  authToggleMode.addEventListener('click', function(e){
+    e.preventDefault();
+    setAuthMode(authMode === 'login' ? 'register' : 'login');
+  });
+
+  function openAuthModal(){
+    authUsername.value = ''; authPassword.value = ''; authDisplayName.value = '';
+    setAuthMode('login');
     loginBackdrop.classList.add('open');
-    loginUserInput.focus();
+    authUsername.focus();
   }
-  function closeLogin(){ loginBackdrop.classList.remove('open'); }
-  function logout(){
-    dropPresence();
-    currentUsername = ''; currentUserKey = '';
-    try{ localStorage.removeItem('panel-username'); localStorage.removeItem('panel-userkey'); }catch(e){}
-    editMode = false;
-    try{ sessionStorage.removeItem('panel-edit'); }catch(e){}
-    applyEditModeUI();
-    applyUserUI();
-    renderPresence();
-    openLogin(false);
+  function closeAuthModal(){ loginBackdrop.classList.remove('open'); }
+  function showAuthError(msg){ authError.textContent = msg; authError.classList.add('show'); }
+
+  function friendlyAuthError(err){
+    const code = err && err.code;
+    if(code === 'auth/email-already-in-use') return 'Ese usuario ya está registrado.';
+    if(code === 'auth/weak-password') return 'La contraseña debe tener al menos 6 caracteres.';
+    if(code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential' || code === 'auth/invalid-login-credentials') return 'Usuario o contraseña incorrectos.';
+    if(code === 'auth/invalid-email') return 'Ese nombre de usuario no es válido.';
+    if(code === 'auth/network-request-failed') return 'Sin conexión. Revisa tu internet e inténtalo de nuevo.';
+    if(code === 'auth/too-many-requests') return 'Demasiados intentos. Espera un poco y vuelve a intentarlo.';
+    return 'No se ha podido completar la operación. Inténtalo de nuevo.';
   }
-  function submitLogin(){
-    const key = loginUserInput.value.trim().toLowerCase();
-    const pass = loginPassInput.value;
-    const user = (key && Object.prototype.hasOwnProperty.call(USERS, key)) ? USERS[key] : null;
-    if(!user || user.password !== pass){
-      loginError.textContent = 'Usuario o contraseña incorrectos.';
-      loginError.classList.add('show');
+
+  function submitAuth(){
+    authError.classList.remove('show');
+    if(typeof firebase === 'undefined' || !firebase.auth){
+      showAuthError('El registro no está disponible ahora mismo.');
       return;
     }
-    currentUsername = user.name;
-    currentUserKey = key;
-    try{ localStorage.setItem('panel-username', currentUsername); localStorage.setItem('panel-userkey', currentUserKey); }catch(e){}
-    applyUserUI();
-    if(isAdminUser()){
-      editMode = true;
-      try{ sessionStorage.setItem('panel-edit','1'); }catch(e){}
-      applyEditModeUI();
+    const uname = authUsername.value.trim();
+    const pass = authPassword.value;
+    if(uname.length < 3){ showAuthError('El usuario debe tener al menos 3 caracteres.'); return; }
+    if(pass.length < 6){ showAuthError('La contraseña debe tener al menos 6 caracteres.'); return; }
+    const email = usernameToEmail(uname);
+    authSubmit.disabled = true;
+    if(authMode === 'register'){
+      const dname = authDisplayName.value.trim() || uname;
+      firebase.auth().createUserWithEmailAndPassword(email, pass)
+        .then(function(cred){ return cred.user.updateProfile({ displayName: dname }); })
+        .then(function(){ authSubmit.disabled = false; })
+        .catch(function(err){ authSubmit.disabled = false; showAuthError(friendlyAuthError(err)); });
+    } else {
+      firebase.auth().signInWithEmailAndPassword(email, pass)
+        .then(function(){ authSubmit.disabled = false; })
+        .catch(function(err){ authSubmit.disabled = false; showAuthError(friendlyAuthError(err)); });
     }
-    announcePresence();
-    renderPresence();
-    closeLogin();
   }
-  loginSubmit.addEventListener('click', submitLogin);
-  loginPassInput.addEventListener('keydown', function(e){ if(e.key === 'Enter') submitLogin(); });
-  loginUserInput.addEventListener('keydown', function(e){ if(e.key === 'Enter') loginPassInput.focus(); });
-  loginCancel.addEventListener('click', closeLogin);
+  authSubmit.addEventListener('click', submitAuth);
+  authPassword.addEventListener('keydown', function(e){ if(e.key === 'Enter') submitAuth(); });
+  authUsername.addEventListener('keydown', function(e){ if(e.key === 'Enter') authPassword.focus(); });
+
+  function logout(){
+    if(typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser){
+      firebase.auth().signOut();
+    }
+  }
   changeNameBtn.addEventListener('click', logout);
-  if(!currentUsername || !currentUserKey || !USERS[currentUserKey]) openLogin(false);
 
   /* ================= PRESENCIA (quién está en la página ahora mismo) =================
      Se apoya en Firebase Realtime Database, bajo la ruta "presence/{usuario}/{conexión}".
@@ -940,29 +762,13 @@
   const presenceToggle = document.getElementById('presenceToggle');
   const presencePanel = document.getElementById('presencePanel');
   const presenceCount = document.getElementById('presenceCount');
-  let kicksRef = null, mutesRef = null;
-  let kicksMap = {}, mutesMap = {};
-  let kickUntil = 0, muteUntil = 0, serverOffset = 0;
   let onlineUsers = {};
   let myPresenceConnRef = null;
-  let presenceConnected = false;
-  let presenceError = false;
 
   function renderPresence(){
-    const list = Object.assign({}, onlineUsers);
-    if(currentUserKey && currentUsername && !list[currentUserKey] && !isKicked()){
-      list[currentUserKey] = { name: currentUsername, count: 1 };
-    }
-    const keys = Object.keys(list);
+    const keys = Object.keys(onlineUsers);
     presenceCount.textContent = keys.length + ' en línea';
     presencePanel.innerHTML = '';
-    if(presenceError){
-      const err = document.createElement('div');
-      err.className = 'presence-empty';
-      err.style.color = 'var(--danger)';
-      err.textContent = 'No se puede leer la lista de conectados. Revisa las reglas de Firebase (nodo "presence").';
-      presencePanel.appendChild(err);
-    }
     if(keys.length === 0){
       const empty = document.createElement('div');
       empty.className = 'presence-empty';
@@ -970,11 +776,9 @@
       presencePanel.appendChild(empty);
       return;
     }
-    keys.sort(function(a,b){ return (list[a].name || '').localeCompare(list[b].name || ''); });
-    const chatSubEl = document.getElementById('chatSub');
-    if(chatSubEl) chatSubEl.textContent = keys.map(function(k){ return k === currentUserKey ? 'Tú' : list[k].name; }).join(', ');
+    keys.sort(function(a,b){ return onlineUsers[a].name.localeCompare(onlineUsers[b].name); });
     keys.forEach(function(k){
-      const u = list[k];
+      const u = onlineUsers[k];
       const isMe = k === currentUserKey;
       const row = document.createElement('div');
       row.className = 'presence-row';
@@ -982,18 +786,8 @@
       av.className = 'avatar';
       av.textContent = (u.name || '?').trim().slice(0,1).toUpperCase();
       const nm = document.createElement('span');
-      nm.className = 'pr-name';
       nm.textContent = u.name + (isMe ? ' (tú)' : '');
       row.appendChild(av); row.appendChild(nm);
-      const targetIsAdmin = Object.prototype.hasOwnProperty.call(USERS, k) && USERS[k].admin;
-      if(!isMe && !targetIsAdmin){
-        const kb = document.createElement('button');
-        kb.type = 'button';
-        kb.className = 'kick-btn admin-only';
-        kb.textContent = 'Expulsar';
-        kb.addEventListener('click', function(ev){ ev.stopPropagation(); kickUser(k, u.name); });
-        row.appendChild(kb);
-      }
       presencePanel.appendChild(row);
     });
   }
@@ -1016,7 +810,7 @@
   function announcePresence(){
     if(!currentUserKey || !currentUsername) return;
     if(typeof firebase !== 'undefined' && firebase.database && firebaseConfig.apiKey && firebaseConfig.apiKey !== 'TU_API_KEY'){
-      if(myPresenceConnRef || !presenceConnected) return;
+      if(myPresenceConnRef) return;
       try{
         myPresenceConnRef = firebase.database().ref('presence/' + currentUserKey).push();
         myPresenceConnRef.onDisconnect().remove();
@@ -1039,70 +833,32 @@
     }
   }
 
-  /* ================= ADMIN / EDIT MODE =================
-     Contraseña simple a nivel de interfaz (no es seguridad real: cualquiera
-     con conocimientos técnicos podría escribir directamente en Firebase).
-     Cámbiala aquí: */
-  const ADMIN_PASSWORD = "ADMIN_PASWORD1234";
-
+  /* ================= PERMISOS DE ADMINISTRADOR =================
+     Ya no hay ninguna contraseña de "modo edición" en el código. Quién puede
+     añadir o borrar tareas y avisos se decide en el nodo "admins/{uid}" de la
+     base de datos de Firebase, y solo tú puedes escribir ahí desde la consola
+     de Firebase (las reglas de seguridad bloquean que nadie se lo conceda a
+     sí mismo). Mientras ese valor no sea "true", la persona ve el panel en
+     modo solo lectura, haga lo que haga con el código de su navegador. */
   const body = document.body;
-  const lockToggle = document.getElementById('lockToggle');
-  const lockIcon = document.getElementById('lockIcon');
-  const lockLabel = document.getElementById('lockLabel');
-  const modalBackdrop = document.getElementById('modalBackdrop');
-  const modalPasswordInput = document.getElementById('modalPasswordInput');
-  const modalError = document.getElementById('modalError');
-  const modalSubmit = document.getElementById('modalSubmit');
-  const modalCancel = document.getElementById('modalCancel');
+  let adminRef = null;
 
-  let editMode = false;
-  try{ editMode = sessionStorage.getItem('panel-edit') === '1'; }catch(e){}
-  if(isAdminUser()) editMode = true;
-
-  function applyEditModeUI(){
-    body.classList.toggle('edit-mode', editMode);
-    lockToggle.classList.toggle('unlocked', editMode);
-    lockLabel.textContent = editMode ? 'Modo edición' : 'Solo lectura';
-    lockIcon.setAttribute('data-lucide', editMode ? 'unlock' : 'lock');
-    if(window.lucide) lucide.createIcons();
+  function applyAdminUI(){
+    body.classList.toggle('edit-mode', isAdmin);
+    applyUserUI();
   }
-  function openModal(){
-    modalError.classList.remove('show');
-    modalPasswordInput.value = '';
-    modalBackdrop.classList.add('open');
-    modalPasswordInput.focus();
-  }
-  function closeModal(){ modalBackdrop.classList.remove('open'); }
-
-  lockToggle.addEventListener('click', function(){
-    if(editMode){
-      editMode = false;
-      try{ sessionStorage.removeItem('panel-edit'); }catch(e){}
-      applyEditModeUI();
-    } else if(isAdminUser()){
-      editMode = true;
-      try{ sessionStorage.setItem('panel-edit','1'); }catch(e){}
-      applyEditModeUI();
-    } else {
-      openModal();
+  function watchAdminStatus(){
+    if(adminRef){ adminRef.off(); adminRef = null; }
+    if(!(typeof firebase !== 'undefined' && firebase.database && currentUserKey)){
+      isAdmin = false; applyAdminUI(); return;
     }
-  });
-  modalCancel.addEventListener('click', closeModal);
-  modalBackdrop.addEventListener('click', function(e){ if(e.target === modalBackdrop) closeModal(); });
-  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeModal(); });
-  function trySubmitPassword(){
-    if(modalPasswordInput.value === ADMIN_PASSWORD){
-      editMode = true;
-      try{ sessionStorage.setItem('panel-edit','1'); }catch(e){}
-      applyEditModeUI();
-      closeModal();
-    } else {
-      modalError.classList.add('show');
-    }
+    adminRef = firebase.database().ref('admins/' + currentUserKey);
+    adminRef.on('value', function(snap){
+      isAdmin = snap.val() === true;
+      applyAdminUI();
+    }, function(){ isAdmin = false; applyAdminUI(); });
   }
-  modalSubmit.addEventListener('click', trySubmitPassword);
-  modalPasswordInput.addEventListener('keydown', function(e){ if(e.key === 'Enter') trySubmitPassword(); });
-  applyEditModeUI();
+  applyAdminUI();
 
   /* ================= PAGE NAV (index derecho) ================= */
   function registerNav(){
@@ -1199,10 +955,13 @@
   renderLegend();
   setInterval(renderSchedule, 60000);
 
-  /* ================= FIREBASE (tareas + avisos en tiempo real) =================
-     1. https://console.firebase.google.com > tu proyecto > Realtime Database > Crear base de datos.
-     2. En "Reglas" pon: {"rules":{"tasks":{".read":true,".write":true},"avisos":{".read":true,".write":true}}}
-     3. Ya tienes tu configuración rellena abajo. */
+  /* ================= FIREBASE (cuentas, tareas y avisos en tiempo real) =================
+     1. En la consola de Firebase, activa Authentication > Sign-in method > Email/contraseña.
+     2. En Realtime Database > Reglas, pega las reglas de seguridad que te he dado aparte
+        (restringen quién puede escribir en "tasks" y "avisos" a quien tenga admins/{uid}=true,
+        y bloquean que nadie pueda escribirse ese permiso a sí mismo).
+     3. Para dar permisos de administrador a alguien: Authentication > Users, copia su UID,
+        y en Realtime Database > Datos añade manualmente admins/{ese UID} = true. */
   const firebaseConfig = {
     apiKey: "AIzaSyDlRIpLcfYZjVwNSlLm92BCnq6fwQvfHZc",
     authDomain: "smr-7e04e.firebaseapp.com",
@@ -1252,9 +1011,10 @@
       }, function(err){ console.error('Firebase avisos error', err); });
 
       chatRef = firebase.database().ref('chat');
-      chatRef.limitToLast(100).on('value', function(snapshot){
+      chatRef.limitToLast(200).on('value', function(snapshot){
         const val = snapshot.val() || {};
         chatMsgs = Object.keys(val).map(function(id){ return Object.assign({id:id}, val[id]); });
+        saveLocal('panel-chat', chatMsgs);
         renderChat();
       }, function(err){ console.error('Firebase chat error', err); });
 
@@ -1269,48 +1029,47 @@
           const sample = conns[connKeys[0]];
           onlineUsers[uKey] = { name: (sample && sample.name) || uKey, count: connKeys.length };
         });
-        presenceError = false;
         renderPresence();
-      }, function(err){
-        console.error('Firebase presence error', err);
-        presenceError = true;
-        renderPresence();
-      });
+      }, function(err){ console.error('Firebase presence error', err); });
 
-      firebase.database().ref('.info/connected').on('value', function(s){
-        if(s.val() === true){
-          presenceConnected = true;
-          myPresenceConnRef = null; // el servidor borró la entrada anterior al desconectar
-          announcePresence();
-        } else {
-          presenceConnected = false;
-        }
-      });
-
-      firebase.database().ref('.info/serverTimeOffset').on('value', function(s){ serverOffset = s.val() || 0; });
-      // (la presencia se registra en el listener de .info/connected definido arriba)
-      kicksRef = firebase.database().ref('kicks');
-      mutesRef = firebase.database().ref('mutes');
-      kicksRef.on('value', function(s){ kicksMap = s.val() || {}; applyPenalties(); },
-        function(err){ console.error('Firebase kicks error', err); });
-      mutesRef.on('value', function(s){ mutesMap = s.val() || {}; applyPenalties(); },
-        function(err){ console.error('Firebase mutes error', err); });
-      announcePresence();
+      if(firebase.auth){
+        firebase.auth().onAuthStateChanged(function(user){
+          if(user){
+            currentUserKey = user.uid;
+            currentUsername = user.displayName || (user.email || '').split('@')[0];
+            applyUserUI();
+            closeAuthModal();
+            announcePresence();
+            watchAdminStatus();
+          } else {
+            dropPresence();
+            currentUserKey = ''; currentUsername = ''; isAdmin = false;
+            applyUserUI();
+            applyAdminUI();
+            openAuthModal();
+          }
+        });
+      } else {
+        openAuthModal();
+        showAuthError('El registro no está disponible: falta activar Firebase Authentication.');
+      }
     }catch(e){
       console.error('Firebase: no se pudo inicializar', e);
-      tasksRef = null; avisosRef = null; chatRef = null; kicksRef = null; mutesRef = null;
+      tasksRef = null; avisosRef = null; chatRef = null;
       tasks = loadLocal('panel-tasks');
       avisos = loadLocal('panel-avisos');
       chatMsgs = loadLocal('panel-chat');
       setSyncStatus('local', 'Local');
-      announcePresence();
+      openAuthModal();
+      showAuthError('No se ha podido conectar. El registro y el inicio de sesión no están disponibles ahora mismo.');
     }
   } else {
     tasks = loadLocal('panel-tasks');
     avisos = loadLocal('panel-avisos');
     chatMsgs = loadLocal('panel-chat');
     setSyncStatus('local', 'Local');
-    announcePresence();
+    openAuthModal();
+    showAuthError('El registro no está disponible: falta configurar Firebase.');
   }
 
   function addTask(task){
@@ -1354,36 +1113,6 @@
       renderAvisos();
     }
   }
-  function clearChat(){
-    seenIds.clear(); fabNew = 0;
-    if(!chatRef){
-      chatMsgs = []; saveLocal('panel-chat', chatMsgs); renderChat();
-      return;
-    }
-    chatRef.remove().catch(function(){
-      // Si las reglas no dejan borrar el nodo entero, se borra mensaje a mensaje.
-      return chatRef.once('value').then(function(snap){
-        const upd = {};
-        snap.forEach(function(c){ upd[c.key] = null; });
-        return chatRef.update(upd);
-      });
-    }).catch(function(err){
-      console.error('No se pudo vaciar el chat', err);
-      alert('No se pudo vaciar el chat. Revisa las reglas de Firebase (nodo "chat").\n' + (err && err.message ? err.message : ''));
-    });
-  }
-  function removeChatMsg(id){
-    const target = chatMsgs.find(function(x){ return x.id === id; });
-    if(!target) return;
-    const mine = !!(target.userKey && target.userKey === currentUserKey);
-    if(!(mine || editMode)) return;
-    if(chatRef){ chatRef.child(id).remove(); }
-    else{
-      chatMsgs = chatMsgs.filter(function(x){ return x.id !== id; });
-      saveLocal('panel-chat', chatMsgs);
-      renderChat();
-    }
-  }
   function sendChatMsg(msg){
     if(chatRef){ chatRef.push(msg); }
     else{
@@ -1418,9 +1147,7 @@
     let level = 'neutral';
     if(totalHours <= 24) level = 'danger'; else if(totalHours <= 48) level = 'warn';
     bar.className = 'countdown-bar ' + level;
-    bar.innerHTML = '<i data-lucide="alarm-clock"></i><span><strong></strong></span>';
-    bar.querySelector('strong').textContent = (exam.subject ? exam.subject + ': ' : '') + exam.title;
-    bar.querySelector('span').appendChild(document.createTextNode(' — quedan ' + days + ' d ' + hours + ' h'));
+    bar.innerHTML = '<i data-lucide="alarm-clock"></i><span><strong>' + exam.title + '</strong> — quedan ' + days + ' d ' + hours + ' h</span>';
     if(window.lucide) lucide.createIcons();
   }
   setInterval(renderCountdown, 60000);
@@ -1471,24 +1198,6 @@
   let selectedDate = null;
   const MONTHS = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
   const DOWS = ["L","M","X","J","V","S","D"];
-  const SUBJ_VAR = {
-    "Inglés":"--ing", "Servicios en red":"--sr", "Servicios en Red":"--sr",
-    "Seguridad":"--seg", "Ap.Web":"--web", "SOR":"--sor", "Ipe II":"--ipe",
-    "Proyecto":"--pro", "HLC":"--hlc"
-  };
-  function subjColor(s){ return 'var(' + (SUBJ_VAR[s] || '--accent') + ')'; }
-  (function renderCalLegend(){
-    const wrap = document.getElementById('calSubjLegend');
-    LEGEND_ORDER.forEach(function(s){
-      const item = document.createElement('div');
-      item.className = 'legend-item';
-      const dot = document.createElement('span');
-      dot.style.cssText = 'width:10px;height:10px;border-radius:50%;display:inline-block;background:' + subjColor(s);
-      const lb = document.createElement('span'); lb.textContent = s;
-      item.appendChild(dot); item.appendChild(lb);
-      wrap.appendChild(item);
-    });
-  })();
   function fmtDate(y,m,d){ return y + '-' + String(m+1).padStart(2,'0') + '-' + String(d).padStart(2,'0'); }
 
   function renderCalendar(){
@@ -1504,14 +1213,7 @@
     if(startOffset < 0) startOffset = 6;
     const daysInMonth = new Date(viewYear, viewMonth+1, 0).getDate();
     const daysInPrevMonth = new Date(viewYear, viewMonth, 0).getDate();
-    const eventDates = new Map();
-    tasks.forEach(function(t){
-      if(!t.date) return;
-      if(!eventDates.has(t.date)) eventDates.set(t.date, []);
-      const arr = eventDates.get(t.date);
-      const s = t.subject || '';
-      if(arr.indexOf(s) === -1) arr.push(s);
-    });
+    const eventDates = new Set(tasks.map(t => t.date));
     for(let i=0; i<startOffset; i++){
       const el = document.createElement('div');
       el.className = 'cal-day muted';
@@ -1529,19 +1231,7 @@
       if(eventDates.has(dateStr) || festivoLabel){
         const dots = document.createElement('div');
         dots.className = 'cal-dots';
-        if(eventDates.has(dateStr)){
-          const subs = eventDates.get(dateStr);
-          const names = [];
-          subs.slice(0,4).forEach(function(s){
-            const sp = document.createElement('span');
-            sp.style.background = subjColor(s);
-            dots.appendChild(sp);
-          });
-          tasks.forEach(function(t){
-            if(t.date === dateStr) names.push((t.subject ? t.subject + ': ' : '') + t.title);
-          });
-          el.title = (festivoLabel ? festivoLabel + ' · ' : '') + names.join(' · ');
-        }
+        if(eventDates.has(dateStr)) dots.appendChild(document.createElement('span'));
         if(festivoLabel){ const fd = document.createElement('span'); fd.className = 'dot-festivo'; dots.appendChild(fd); }
         el.appendChild(dots);
       }
@@ -1573,19 +1263,7 @@
   const taskList = document.getElementById('taskList');
   const taskTitle = document.getElementById('taskTitle');
   const taskType = document.getElementById('taskType');
-  const taskSubject = document.getElementById('taskSubject');
   let currentFilter = 'todos';
-
-  (function fillSubjects(){
-    const ph = document.createElement('option');
-    ph.value = ''; ph.textContent = '— Elige asignatura —'; ph.disabled = true; ph.selected = true;
-    taskSubject.appendChild(ph);
-    LEGEND_ORDER.forEach(function(s){
-      const o = document.createElement('option');
-      o.value = s; o.textContent = s;
-      taskSubject.appendChild(o);
-    });
-  })();
 
   function renderTasks(){
     taskList.innerHTML = '';
@@ -1620,14 +1298,7 @@
       const dateSpan = document.createElement('span');
       dateSpan.className = 'task-date';
       dateSpan.textContent = t.date ? new Date(t.date+'T00:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'}) : '';
-      meta.appendChild(tag);
-      if(t.subject){
-        const subj = document.createElement('span');
-        subj.className = 'task-subj ' + (COLOR_CLASS[t.subject] || 'c-rec');
-        subj.textContent = t.subject;
-        meta.appendChild(subj);
-      }
-      meta.appendChild(dateSpan);
+      meta.appendChild(tag); meta.appendChild(dateSpan);
       bodyEl.appendChild(title); bodyEl.appendChild(meta);
 
       const del = document.createElement('button');
@@ -1644,14 +1315,12 @@
 
   taskForm.addEventListener('submit', function(e){
     e.preventDefault();
-    if(!editMode) return;
+    if(!isAdmin) return;
     const title = taskTitle.value.trim();
     const date = taskDateInput.value;
-    const subject = taskSubject.value;
-    if(!title || !date || !subject) return;
-    addTask({ title: title, type: taskType.value, subject: subject, date: date, done: false });
+    if(!title || !date) return;
+    addTask({ title: title, type: taskType.value, date: date, done: false });
     taskTitle.value = '';
-    taskSubject.selectedIndex = 0;
   });
   document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', function(){
@@ -1672,7 +1341,7 @@
       { label: "Classroom", url: "https://classroom.google.com/u/0/h/st?hl=es", icon: "cloud" }
     ]},
     { category: "Recursos de la clase", items: [
-      { label: "Drive compartido", url: "https://drive.google.com/drive/folders/1SHh2BTFvCUfob9ZUcnXzCg02noap6gwz?usp=sharing", icon: "folder-git" },
+      { label: "Drive compartido", url: "https://drive.google.com/drive/folders/1IhjmQ16kJ2qtyrS4mpS_Em1Z9PhPGH9P?usp=drive_link", icon: "folder-git" },
       { label: "Telegram Seguridad Informatica", url: "https://t.me/+ceXr7cMTMftkNjI0", icon: "binary" }
     ]}
   ];
@@ -1867,7 +1536,7 @@
   }
   avisoForm.addEventListener('submit', function(e){
     e.preventDefault();
-    if(!editMode) return;
+    if(!isAdmin) return;
     const text = avisoText.value.trim();
     if(!text) return;
     addAviso({ text: text, ts: Date.now() });
@@ -1879,531 +1548,50 @@
   const chatForm = document.getElementById('chatForm');
   const chatInput = document.getElementById('chatInput');
   const chatList = document.getElementById('chatList');
-  const chatCard = document.getElementById('chatCard');
-  const chatFile = document.getElementById('chatFile');
-  const chatAttach = document.getElementById('chatAttach');
-  const chatPreview = document.getElementById('chatPreview');
-  const chatBadge = document.getElementById('chatBadge');
-  const pageChat = document.getElementById('page-chat');
-  const MAX_FILE = 1024 * 1024; // 1 MB para archivos que no son imagen
-
-  let pending = null;       // adjunto a punto de enviarse
-  let anchor = null;        // "último leído" al entrar al chat (para la línea de nuevos)
-  let needScroll = false;   // hay que posicionar el scroll en el siguiente render
-  let forceBottom = false;  // tras enviar, baja del todo
-
-  function lrKey(){ return 'panel-chat-lastread-' + (currentUserKey || 'anon'); }
-  function getLastRead(){
-    try{ const v = localStorage.getItem(lrKey()); return v === null ? 0 : Number(v) || 0; }catch(e){ return 0; }
-  }
-  function latestTs(){ return chatMsgs.reduce(function(m,x){ return Math.max(m, x.ts || 0); }, 0); }
-  function markRead(){
-    const t = latestTs();
-    if(t > getLastRead()){ try{ localStorage.setItem(lrKey(), String(t)); }catch(e){} }
-  }
-  function isOwn(m){ return m.userKey && m.userKey === currentUserKey; }
-  function isChatOpen(){ return pageChat.classList.contains('active') && !document.hidden; }
-
-  function updateBadge(){
-    const lr = getLastRead();
-    const n = isChatOpen() ? 0 : chatMsgs.filter(function(m){ return (m.ts||0) > lr && !isOwn(m); }).length;
-    chatBadge.hidden = n === 0;
-    chatBadge.textContent = n > 99 ? '99+' : String(n);
-  }
-
-  function enterChat(){
-    anchor = getLastRead();
-    needScroll = true;
-    renderChat();
-  }
-  let wasActive = pageChat.classList.contains('active');
-  new MutationObserver(function(){
-    const nowActive = pageChat.classList.contains('active');
-    if(nowActive === wasActive) return;
-    wasActive = nowActive;
-    if(nowActive) enterChat(); else { anchor = null; updateBadge(); }
-  }).observe(pageChat, { attributes:true, attributeFilter:['class'] });
-  document.addEventListener('visibilitychange', function(){
-    if(!document.hidden && pageChat.classList.contains('active')) enterChat();
-  });
 
   function fmtTime(ts){
     const d = new Date(ts || Date.now());
     return d.toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
   }
-  function fmtSize(b){
-    if(!b) return '';
-    if(b < 1024) return b + ' B';
-    if(b < 1048576) return Math.round(b/1024) + ' KB';
-    return (b/1048576).toFixed(1) + ' MB';
-  }
-  function openLightbox(src){
-    const lb = document.createElement('div');
-    lb.className = 'lightbox';
-    const im = document.createElement('img'); im.src = src;
-    lb.appendChild(im);
-    lb.addEventListener('click', function(){ lb.remove(); });
-    document.body.appendChild(lb);
-  }
-
-  function dayLabel(ts){
-    const d = new Date(ts), t = new Date(), y = new Date();
-    y.setDate(t.getDate() - 1);
-    if(d.toDateString() === t.toDateString()) return 'Hoy';
-    if(d.toDateString() === y.toDateString()) return 'Ayer';
-    const s = d.toLocaleDateString('es-ES', {weekday:'long', day:'numeric', month:'long'});
-    return s.charAt(0).toUpperCase() + s.slice(1);
-  }
-  function nameHue(s){
-    let h = 0;
-    for(let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360;
-    return h;
-  }
-
-  const chatFab = document.getElementById('chatFab');
-  const chatFabN = document.getElementById('chatFabN');
-  const seenIds = new Set();
-  let fabNew = 0;
-  function updateFab(){
-    const far = (chatList.scrollHeight - chatList.scrollTop - chatList.clientHeight) > 160;
-    if(!far) fabNew = 0;
-    chatFab.hidden = !far;
-    chatFabN.hidden = !(far && fabNew > 0);
-    chatFabN.textContent = fabNew > 99 ? '99+' : String(fabNew);
-  }
-  chatList.addEventListener('scroll', updateFab);
-  chatFab.addEventListener('click', function(){
-    chatList.scrollTo({ top: chatList.scrollHeight, behavior: 'smooth' });
-  });
-  document.getElementById('chatClear').addEventListener('click', function(){
-    if(!editMode) return;
-    if(!confirm('¿Vaciar TODO el chat? Se borrarán todos los mensajes para todos y no se puede deshacer.')) return;
-    clearChat();
-  });
-
-  /* ---- responder a un mensaje ---- */
-  const chatReplyBar = document.getElementById('chatReplyBar');
-  let replyTo = null;
-  function msgSnippet(m){
-    if(m.text) return m.text.length > 120 ? m.text.slice(0, 120) + '…' : m.text;
-    if(m.type === 'image') return 'Foto';
-    if(m.type === 'file') return 'Archivo · ' + (m.fileName || '');
-    return '';
-  }
-  function renderReplyBar(){
-    chatReplyBar.innerHTML = '';
-    if(!replyTo){ chatReplyBar.hidden = true; return; }
-    chatReplyBar.hidden = false;
-    const info = document.createElement('div');
-    info.className = 'rb-info';
-    info.style.setProperty('--nh', String(nameHue(replyTo.userKey || replyTo.name || '')));
-    const nm = document.createElement('span'); nm.className = 'rb-name'; nm.textContent = replyTo.name;
-    const tx = document.createElement('span'); tx.className = 'rb-text'; tx.textContent = replyTo.text;
-    info.appendChild(nm); info.appendChild(tx);
-    const x = document.createElement('button');
-    x.type = 'button'; x.setAttribute('aria-label', 'Cancelar respuesta');
-    x.innerHTML = '<i data-lucide="x"></i>';
-    x.addEventListener('click', function(){ replyTo = null; renderReplyBar(); });
-    chatReplyBar.appendChild(info); chatReplyBar.appendChild(x);
-    if(window.lucide) lucide.createIcons();
-  }
-  function startReply(m){
-    replyTo = { id: m.id || '', name: m.name || 'Anónimo', userKey: m.userKey || '', text: msgSnippet(m) };
-    renderReplyBar();
-    chatInput.focus();
-  }
-  function jumpToMsg(id){
-    if(!id) return;
-    const el = chatList.querySelector('[data-mid="' + String(id).replace(/"/g, '\\"') + '"]');
-    if(!el) return;
-    chatList.scrollTo({
-      top: el.getBoundingClientRect().top - chatList.getBoundingClientRect().top + chatList.scrollTop - chatList.clientHeight / 2,
-      behavior: 'smooth'
-    });
-    el.classList.add('flash');
-    setTimeout(function(){ el.classList.remove('flash'); }, 1600);
-  }
-
   function renderChat(){
-    const open = isChatOpen();
-    const nearBottom = (chatList.scrollHeight - chatList.scrollTop - chatList.clientHeight) < 80;
-    const wantsBottom = forceBottom || nearBottom;
-    const hadNeedScroll = needScroll;
+    const wasNearBottom = (chatList.scrollHeight - chatList.scrollTop - chatList.clientHeight) < 80;
     chatList.innerHTML = '';
-    const sorted = chatMsgs.slice().sort(function(a,b){ return (a.ts||0) - (b.ts||0); });
+    const sorted = chatMsgs.slice().sort((a,b) => (a.ts||0) - (b.ts||0));
     if(sorted.length === 0){
-      seenIds.clear(); fabNew = 0;
       const empty = document.createElement('div');
       empty.className = 'empty-state';
       empty.innerHTML = '<i data-lucide="message-circle"></i><div>Todavía no hay mensajes. ¡Escribe el primero!</div>';
       chatList.appendChild(empty);
       if(window.lucide) lucide.createIcons();
-      updateBadge();
-      updateFab();
       return;
     }
-    const unreadCount = (open && anchor !== null)
-      ? sorted.filter(function(m){ return (m.ts||0) > anchor && !isOwn(m); }).length : 0;
-    let dividerEl = null;
-    let prev = null;
-
-    sorted.forEach(function(m){
-      const own = isOwn(m);
-      const ts = m.ts || 0;
-      let broke = false;
-
-      if(!prev || new Date(prev.ts||0).toDateString() !== new Date(ts).toDateString()){
-        const day = document.createElement('div');
-        day.className = 'chat-day';
-        day.textContent = dayLabel(ts);
-        chatList.appendChild(day);
-        broke = true;
-      }
-      if(unreadCount > 0 && !dividerEl && ts > anchor && !own){
-        dividerEl = document.createElement('div');
-        dividerEl.className = 'chat-divider';
-        dividerEl.textContent = unreadCount === 1 ? '1 mensaje nuevo' : unreadCount + ' mensajes nuevos';
-        chatList.appendChild(dividerEl);
-        broke = true;
-      }
-      const grouped = !broke && prev &&
-        (prev.userKey || prev.name) === (m.userKey || m.name) &&
-        (ts - (prev.ts||0)) < 5 * 60000;
-
+    sorted.forEach(m => {
+      const isOwn = m.userKey && m.userKey === currentUserKey;
       const wrap = document.createElement('div');
-      wrap.className = 'chat-msg ' + (own ? 'own' : 'other') + (grouped ? ' grouped' : ' first');
-      wrap.dataset.mid = m.id || '';
-      if(m.system) wrap.classList.add('sys');
+      wrap.className = 'chat-msg ' + (isOwn ? 'own' : 'other');
+      const nameEl = document.createElement('div');
+      nameEl.className = 'chat-msg-name';
+      nameEl.textContent = isOwn ? 'Tú' : (m.name || 'Anónimo');
       const bubble = document.createElement('div');
       bubble.className = 'chat-bubble';
-
-      if(!own && !grouped){
-        const nameEl = document.createElement('span');
-        nameEl.className = 'chat-msg-name';
-        nameEl.style.setProperty('--nh', String(nameHue(m.userKey || m.name || '')));
-        nameEl.textContent = m.name || 'Anónimo';
-        bubble.appendChild(nameEl);
-      }
-
-      if(m.reply){
-        const q = document.createElement('div');
-        q.className = 'chat-quote';
-        q.style.setProperty('--nh', String(nameHue(m.reply.userKey || m.reply.name || '')));
-        const qn = document.createElement('span'); qn.className = 'chat-quote-name'; qn.textContent = m.reply.name || 'Anónimo';
-        const qt = document.createElement('span'); qt.className = 'chat-quote-text'; qt.textContent = m.reply.text || '';
-        q.appendChild(qn); q.appendChild(qt);
-        q.addEventListener('click', function(){ jumpToMsg(m.reply.id); });
-        bubble.appendChild(q);
-      }
-
-      if(m.type === 'image' && /^data:image\//.test(m.data || '')){
-        bubble.classList.add('media');
-        const img = document.createElement('img');
-        img.className = 'chat-img'; img.src = m.data; img.alt = m.fileName || 'imagen';
-        if(m.w && m.h) img.style.aspectRatio = m.w + ' / ' + m.h;
-        img.addEventListener('click', function(){ openLightbox(m.data); });
-        bubble.appendChild(img);
-      } else if(m.type === 'file' && /^data:/.test(m.data || '')){
-        const a = document.createElement('a');
-        a.className = 'chat-file'; a.href = m.data; a.download = m.fileName || 'archivo';
-        a.innerHTML = '<i data-lucide="file-text"></i>';
-        const info = document.createElement('span');
-        const nm = document.createElement('span'); nm.className = 'cf-name'; nm.textContent = m.fileName || 'archivo';
-        const sz = document.createElement('small'); sz.textContent = fmtSize(m.size) + ' · Descargar';
-        info.appendChild(nm); info.appendChild(sz);
-        a.appendChild(info);
-        bubble.appendChild(a);
-      }
-      if(m.text){
-        const t = document.createElement('span');
-        t.textContent = m.text;
-        if(bubble.classList.contains('media')) t.className = 'chat-cap';
-        bubble.appendChild(t);
-      }
-
-      const meta = document.createElement('span');
-      meta.className = 'cm-meta';
-      const delMsg = document.createElement('button');
-      delMsg.type = 'button';
-      delMsg.className = 'task-del' + (own ? '' : ' admin-only');
-      delMsg.setAttribute('aria-label', 'Borrar mensaje');
-      delMsg.innerHTML = '<i data-lucide="trash-2"></i>';
-      delMsg.addEventListener('click', function(){ removeChatMsg(m.id); });
-      meta.appendChild(delMsg);
-      meta.appendChild(document.createTextNode(fmtTime(m.ts)));
-      if(own){
-        const tick = document.createElement('i');
-        tick.setAttribute('data-lucide', 'check-check');
-        meta.appendChild(tick);
-      }
-      bubble.appendChild(meta);
-
-      const replyBtn = document.createElement('button');
-      replyBtn.type = 'button';
-      replyBtn.className = 'chat-reply-btn';
-      replyBtn.setAttribute('aria-label', 'Responder');
-      replyBtn.title = 'Responder';
-      replyBtn.innerHTML = '<i data-lucide="reply"></i>';
-      replyBtn.addEventListener('click', function(){ startReply(m); });
-      if(m.system){ wrap.appendChild(bubble); }
-      else if(own){ wrap.appendChild(replyBtn); wrap.appendChild(bubble); }
-      else { wrap.appendChild(bubble); wrap.appendChild(replyBtn); }
+      bubble.textContent = m.text;
+      const timeEl = document.createElement('div');
+      timeEl.className = 'chat-msg-time';
+      timeEl.textContent = fmtTime(m.ts);
+      wrap.appendChild(nameEl); wrap.appendChild(bubble); wrap.appendChild(timeEl);
       chatList.appendChild(wrap);
-      prev = m;
     });
-    if(window.lucide) lucide.createIcons();
-
-    if(open){
-      if(needScroll){
-        if(dividerEl){
-          chatList.scrollTop = dividerEl.getBoundingClientRect().top - chatList.getBoundingClientRect().top + chatList.scrollTop - 12;
-        } else {
-          chatList.scrollTop = chatList.scrollHeight;
-        }
-        needScroll = false;
-      } else if(wantsBottom){
-        chatList.scrollTop = chatList.scrollHeight;
-      }
-      forceBottom = false;
-      markRead();
-    }
-
-    let fresh = 0;
-    sorted.forEach(function(m){
-      if(m.id && !seenIds.has(m.id)){ seenIds.add(m.id); if(!isOwn(m)) fresh++; }
-    });
-    if(open && !hadNeedScroll && !wantsBottom) fabNew += fresh;
-    updateBadge();
-    updateFab();
+    if(wasNearBottom) chatList.scrollTop = chatList.scrollHeight;
   }
-
-  /* ---- adjuntos ---- */
-  function readAsDataURL(f){
-    return new Promise(function(res, rej){
-      const r = new FileReader();
-      r.onload = function(){ res(r.result); };
-      r.onerror = rej;
-      r.readAsDataURL(f);
-    });
-  }
-  async function compressImage(file){
-    const url = await readAsDataURL(file);
-    const img = await new Promise(function(res, rej){
-      const i = new Image(); i.onload = function(){ res(i); }; i.onerror = rej; i.src = url;
-    });
-    const MAXD = 1280;
-    const s = Math.min(1, MAXD / Math.max(img.width, img.height));
-    const w = Math.round(img.width * s), h = Math.round(img.height * s);
-    const c = document.createElement('canvas'); c.width = w; c.height = h;
-    const ctx = c.getContext('2d');
-    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);
-    ctx.drawImage(img, 0, 0, w, h);
-    return { data: c.toDataURL('image/jpeg', 0.8), w: w, h: h };
-  }
-  async function attachFile(file){
-    if(!file) return;
-    try{
-      if(file.type.indexOf('image/') === 0 && file.type !== 'image/svg+xml'){
-        const r = await compressImage(file);
-        pending = { type:'image', data:r.data, w:r.w, h:r.h, fileName:file.name || 'imagen.jpg', size:file.size };
-      } else {
-        if(file.size > MAX_FILE){ alert('El archivo es demasiado grande (máximo ' + fmtSize(MAX_FILE) + ').'); return; }
-        pending = { type:'file', data: await readAsDataURL(file), fileName:file.name || 'archivo', size:file.size };
-      }
-    }catch(e){ alert('No se pudo leer el archivo.'); return; }
-    renderPreview();
-  }
-  function renderPreview(){
-    chatPreview.innerHTML = '';
-    if(!pending){ chatPreview.hidden = true; return; }
-    chatPreview.hidden = false;
-    if(pending.type === 'image'){
-      const im = document.createElement('img'); im.src = pending.data; chatPreview.appendChild(im);
-    } else {
-      const ic = document.createElement('span'); ic.className = 'pv-icon';
-      ic.innerHTML = '<i data-lucide="file-text"></i>'; chatPreview.appendChild(ic);
-    }
-    const info = document.createElement('div'); info.className = 'pv-info';
-    const nm = document.createElement('div'); nm.className = 'pv-name'; nm.textContent = pending.fileName;
-    const sz = document.createElement('small'); sz.textContent = fmtSize(pending.size);
-    info.appendChild(nm); info.appendChild(sz);
-    const x = document.createElement('button'); x.type = 'button'; x.setAttribute('aria-label','Quitar adjunto');
-    x.innerHTML = '<i data-lucide="x"></i>';
-    x.addEventListener('click', function(){ pending = null; chatFile.value = ''; renderPreview(); });
-    chatPreview.appendChild(info); chatPreview.appendChild(x);
-    if(window.lucide) lucide.createIcons();
-  }
-  chatAttach.addEventListener('click', function(){ chatFile.click(); });
-  chatFile.addEventListener('change', function(){ attachFile(chatFile.files[0]); });
-  chatInput.addEventListener('paste', function(e){
-    const files = e.clipboardData && e.clipboardData.files;
-    if(files && files.length){ e.preventDefault(); attachFile(files[0]); }
-  });
-  ['dragenter','dragover'].forEach(function(ev){
-    chatCard.addEventListener(ev, function(e){ e.preventDefault(); chatCard.classList.add('dragover'); });
-  });
-  ['dragleave','drop'].forEach(function(ev){
-    chatCard.addEventListener(ev, function(e){ e.preventDefault(); chatCard.classList.remove('dragover'); });
-  });
-  chatCard.addEventListener('drop', function(e){
-    if(e.dataTransfer && e.dataTransfer.files.length) attachFile(e.dataTransfer.files[0]);
-  });
-
   chatForm.addEventListener('submit', function(e){
     e.preventDefault();
     const text = chatInput.value.trim();
-    if(!text && !pending) return;
-    if(!currentUsername){ openLogin(false); return; }
-    if(isKicked() || isMuted()) return;
-    if(!exemptFromSpam()){
-      const recent = recentSent();
-      if(recent.length >= SPAM_MAX){
-        // Ya había recibido el aviso y sigue enviando: baneo temporal
-        saveSent([]);
-        setPenalty('mutes', currentUserKey, sNow() + MUTE_MS, 'antispam');
-        announceBan(currentUsername);
-        tickPenalties();
-        return;
-      }
-      recent.push(Date.now());
-      saveSent(recent);
-      tickPenalties(); // si ya van 5 en el último minuto, muestra el aviso
-    }
-    const msg = { name: currentUsername, userKey: currentUserKey, ts: Date.now() };
-    if(text) msg.text = text;
-    if(pending){
-      msg.type = pending.type; msg.data = pending.data;
-      msg.fileName = pending.fileName; msg.size = pending.size;
-      if(pending.w){ msg.w = pending.w; msg.h = pending.h; }
-    }
-    if(replyTo){
-      msg.reply = { id: replyTo.id, name: replyTo.name, userKey: replyTo.userKey, text: replyTo.text };
-    }
-    forceBottom = true;
-    sendChatMsg(msg);
-    replyTo = null; renderReplyBar();
+    if(!text) return;
+    if(!currentUsername){ openAuthModal(); return; }
+    sendChatMsg({ name: currentUsername, userKey: currentUserKey, text: text, ts: Date.now() });
     chatInput.value = '';
-    pending = null; chatFile.value = ''; renderPreview();
   });
   renderChat();
-
-  /* ================= EXPULSIONES Y ANTISPAM =================
-     - Quien esté en modo edición puede expulsar 5 min a otro usuario desde la lista de "en línea".
-     - Si alguien envía SPAM_MAX mensajes en SPAM_WINDOW ms y manda uno más, se le bloquea el chat MUTE_MS.
-     Las sanciones se guardan en Firebase (/kicks y /mutes) con la hora del servidor.
-     Como el resto del panel, es control a nivel de interfaz, no seguridad real. */
-  const KICK_MS = 5 * 60 * 1000;
-  const MUTE_MS = 5 * 60 * 1000;
-  const SPAM_MAX = 5;          // al llegar a 5 mensajes...
-  const SPAM_WINDOW = 60000;   // ...en menos de 1 minuto: aviso. Otro mensaje más: baneo de MUTE_MS.
-  const ANTISPAM_ADMIN_EXEMPT = false; // true = los admins no están sujetos al antispam
-  let wasKicked = false;
-  let noticeFlashUntil = 0;
-
-  const kickOverlay = document.getElementById('kickOverlay');
-  const kickTime = document.getElementById('kickTime');
-  const kickBy = document.getElementById('kickBy');
-  const chatNotice = document.getElementById('chatNotice');
-  const chatSendBtn = chatForm.querySelector('.chat-send');
-
-  function sNow(){ return Date.now() + serverOffset; }
-  function exemptFromSpam(){ return ANTISPAM_ADMIN_EXEMPT && isAdminUser(); }
-  // Copia local del baneo: sigue funcionando aunque Firebase rechace la escritura
-  function localMuteUntil(){
-    try{ return Number(localStorage.getItem('panel-mute-until-' + currentUserKey)) || 0; }catch(e){ return 0; }
-  }
-
-  // Mensajes enviados en el último minuto (se guarda en el navegador para que recargar no lo reinicie)
-  function sentKey(){ return 'panel-chat-sent-' + (currentUserKey || 'anon'); }
-  function recentSent(){
-    let arr = [];
-    try{ arr = JSON.parse(localStorage.getItem(sentKey())) || []; }catch(e){ arr = []; }
-    const now = Date.now();
-    return arr.filter(function(t){ return now - t < SPAM_WINDOW && t <= now + 5000; });
-  }
-  function saveSent(arr){ try{ localStorage.setItem(sentKey(), JSON.stringify(arr)); }catch(e){} }
-  function announceBan(name){
-    sendChatMsg({
-      name: 'ADMIN', userKey: '__admin__', system: true, ts: Date.now(),
-      text: name + ' ha sido baneado temporalmente del chat (5 minutos) por enviar demasiados mensajes.'
-    });
-  }
-  function isKicked(){ return kickUntil > sNow(); }
-  function isMuted(){ return muteUntil > sNow(); }
-  function fmtCountdown(ms){
-    const s = Math.max(0, Math.ceil(ms / 1000));
-    return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
-  }
-
-  function setPenalty(kind, key, until, by){
-    if(!key) return;
-    const ref = kind === 'kicks' ? kicksRef : mutesRef;
-    const map = kind === 'kicks' ? kicksMap : mutesMap;
-    const val = { until: until, by: by || '' };
-    if(kind === 'mutes'){ try{ localStorage.setItem('panel-mute-until-' + key, String(until)); }catch(e){} }
-    if(ref){ ref.child(key).set(val).catch(function(err){ console.error('No se pudo guardar la sanción en Firebase', err); }); }
-    else {
-      map[key] = val;
-      try{ localStorage.setItem('panel-' + kind, JSON.stringify(map)); }catch(e){}
-      applyPenalties();
-    }
-  }
-  function kickUser(key, name){
-    if(!editMode || !key || key === currentUserKey) return;
-    if(!confirm('¿Expulsar a ' + name + ' durante 5 minutos?')) return;
-    setPenalty('kicks', key, sNow() + KICK_MS, currentUsername || 'un administrador');
-  }
-  function flashNotice(text){
-    chatNotice.textContent = text;
-    chatNotice.hidden = false;
-    noticeFlashUntil = Date.now() + 4000;
-  }
-
-  function applyPenalties(){ tickPenalties(); }
-  function tickPenalties(){
-    const kEntry = currentUserKey && kicksMap[currentUserKey];
-    const mEntry = currentUserKey && mutesMap[currentUserKey];
-    kickUntil = (!isAdminUser() && kEntry && kEntry.until) || 0;
-    muteUntil = exemptFromSpam() ? 0 : Math.max((mEntry && mEntry.until) || 0, localMuteUntil());
-    const kicked = isKicked();
-    if(kicked){
-      kickOverlay.classList.add('open');
-      kickTime.textContent = fmtCountdown(kickUntil - sNow());
-      const by = kicksMap[currentUserKey] && kicksMap[currentUserKey].by;
-      kickBy.textContent = by ? by + ' te ha expulsado temporalmente.' : 'Un administrador te ha expulsado temporalmente.';
-      if(myPresenceConnRef) dropPresence();
-    } else {
-      kickOverlay.classList.remove('open');
-      if(wasKicked) announcePresence();
-    }
-    wasKicked = kicked;
-
-    const muted = isMuted();
-    chatInput.disabled = muted || kicked;
-    chatAttach.disabled = muted || kicked;
-    chatSendBtn.disabled = muted || kicked;
-    chatInput.placeholder = muted ? 'Chat bloqueado temporalmente…' : 'Escribe un mensaje…';
-    if(muted){
-      chatNotice.hidden = false;
-      chatNotice.textContent = 'Chat bloqueado por enviar mensajes demasiado rápido. Podrás escribir en ' + fmtCountdown(muteUntil - sNow()) + '.';
-    } else {
-      const rs = exemptFromSpam() ? [] : recentSent();
-      if(rs.length >= SPAM_MAX){
-        const wait = Math.max(1, Math.ceil((rs[0] + SPAM_WINDOW - Date.now()) / 1000));
-        chatNotice.hidden = false;
-        chatNotice.textContent = 'Aviso: estás enviando demasiados mensajes. Si envías otro en los próximos ' + wait + ' s, no podrás escribir durante 5 minutos.';
-      } else if(Date.now() >= noticeFlashUntil){
-        chatNotice.hidden = true;
-      }
-    }
-  }
-  setInterval(tickPenalties, 1000);
-
-  if(!kicksRef){
-    try{ kicksMap = JSON.parse(localStorage.getItem('panel-kicks')) || {}; }catch(e){ kicksMap = {}; }
-    try{ mutesMap = JSON.parse(localStorage.getItem('panel-mutes')) || {}; }catch(e){ mutesMap = {}; }
-  }
-  applyPenalties();
 
   if(window.lucide) lucide.createIcons();
   else document.addEventListener('DOMContentLoaded', function(){ if(window.lucide) lucide.createIcons(); });
