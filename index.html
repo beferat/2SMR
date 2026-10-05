@@ -2256,7 +2256,7 @@
     if(!text && !pending) return;
     if(!currentUsername){ openLogin(false); return; }
     if(isKicked() || isMuted()) return;
-    if(!isAdminUser()){
+    if(!exemptFromSpam()){
       const recent = recentSent();
       if(recent.length >= SPAM_MAX){
         // Ya había recibido el aviso y sigue enviando: baneo temporal
@@ -2297,6 +2297,7 @@
   const MUTE_MS = 5 * 60 * 1000;
   const SPAM_MAX = 5;          // al llegar a 5 mensajes...
   const SPAM_WINDOW = 60000;   // ...en menos de 1 minuto: aviso. Otro mensaje más: baneo de MUTE_MS.
+  const ANTISPAM_ADMIN_EXEMPT = false; // true = los admins no están sujetos al antispam
   let wasKicked = false;
   let noticeFlashUntil = 0;
 
@@ -2307,6 +2308,11 @@
   const chatSendBtn = chatForm.querySelector('.chat-send');
 
   function sNow(){ return Date.now() + serverOffset; }
+  function exemptFromSpam(){ return ANTISPAM_ADMIN_EXEMPT && isAdminUser(); }
+  // Copia local del baneo: sigue funcionando aunque Firebase rechace la escritura
+  function localMuteUntil(){
+    try{ return Number(localStorage.getItem('panel-mute-until-' + currentUserKey)) || 0; }catch(e){ return 0; }
+  }
 
   // Mensajes enviados en el último minuto (se guarda en el navegador para que recargar no lo reinicie)
   function sentKey(){ return 'panel-chat-sent-' + (currentUserKey || 'anon'); }
@@ -2335,7 +2341,8 @@
     const ref = kind === 'kicks' ? kicksRef : mutesRef;
     const map = kind === 'kicks' ? kicksMap : mutesMap;
     const val = { until: until, by: by || '' };
-    if(ref){ ref.child(key).set(val); }
+    if(kind === 'mutes'){ try{ localStorage.setItem('panel-mute-until-' + key, String(until)); }catch(e){} }
+    if(ref){ ref.child(key).set(val).catch(function(err){ console.error('No se pudo guardar la sanción en Firebase', err); }); }
     else {
       map[key] = val;
       try{ localStorage.setItem('panel-' + kind, JSON.stringify(map)); }catch(e){}
@@ -2358,7 +2365,7 @@
     const kEntry = currentUserKey && kicksMap[currentUserKey];
     const mEntry = currentUserKey && mutesMap[currentUserKey];
     kickUntil = (!isAdminUser() && kEntry && kEntry.until) || 0;
-    muteUntil = (!isAdminUser() && mEntry && mEntry.until) || 0;
+    muteUntil = exemptFromSpam() ? 0 : Math.max((mEntry && mEntry.until) || 0, localMuteUntil());
     const kicked = isKicked();
     if(kicked){
       kickOverlay.classList.add('open');
@@ -2381,7 +2388,7 @@
       chatNotice.hidden = false;
       chatNotice.textContent = 'Chat bloqueado por enviar mensajes demasiado rápido. Podrás escribir en ' + fmtCountdown(muteUntil - sNow()) + '.';
     } else {
-      const rs = isAdminUser() ? [] : recentSent();
+      const rs = exemptFromSpam() ? [] : recentSent();
       if(rs.length >= SPAM_MAX){
         const wait = Math.max(1, Math.ceil((rs[0] + SPAM_WINDOW - Date.now()) / 1000));
         chatNotice.hidden = false;
