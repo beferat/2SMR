@@ -796,6 +796,7 @@
     currentUsername = ''; currentUserKey = '';
     try{ localStorage.removeItem('panel-username'); localStorage.removeItem('panel-userkey'); }catch(e){}
     applyUserUI();
+    renderPresence();
     openLogin(false);
   }
   function submitLogin(){
@@ -812,6 +813,7 @@
     try{ localStorage.setItem('panel-username', currentUsername); localStorage.setItem('panel-userkey', currentUserKey); }catch(e){}
     applyUserUI();
     announcePresence();
+    renderPresence();
     closeLogin();
   }
   loginSubmit.addEventListener('click', submitLogin);
@@ -832,11 +834,24 @@
   const presenceCount = document.getElementById('presenceCount');
   let onlineUsers = {};
   let myPresenceConnRef = null;
+  let presenceConnected = false;
+  let presenceError = false;
 
   function renderPresence(){
-    const keys = Object.keys(onlineUsers);
+    const list = Object.assign({}, onlineUsers);
+    if(currentUserKey && currentUsername && !list[currentUserKey] && !isKicked()){
+      list[currentUserKey] = { name: currentUsername, count: 1 };
+    }
+    const keys = Object.keys(list);
     presenceCount.textContent = keys.length + ' en línea';
     presencePanel.innerHTML = '';
+    if(presenceError){
+      const err = document.createElement('div');
+      err.className = 'presence-empty';
+      err.style.color = 'var(--danger)';
+      err.textContent = 'No se puede leer la lista de conectados. Revisa las reglas de Firebase (nodo "presence").';
+      presencePanel.appendChild(err);
+    }
     if(keys.length === 0){
       const empty = document.createElement('div');
       empty.className = 'presence-empty';
@@ -844,9 +859,9 @@
       presencePanel.appendChild(empty);
       return;
     }
-    keys.sort(function(a,b){ return onlineUsers[a].name.localeCompare(onlineUsers[b].name); });
+    keys.sort(function(a,b){ return (list[a].name || '').localeCompare(list[b].name || ''); });
     keys.forEach(function(k){
-      const u = onlineUsers[k];
+      const u = list[k];
       const isMe = k === currentUserKey;
       const row = document.createElement('div');
       row.className = 'presence-row';
@@ -887,7 +902,7 @@
   function announcePresence(){
     if(!currentUserKey || !currentUsername) return;
     if(typeof firebase !== 'undefined' && firebase.database && firebaseConfig.apiKey && firebaseConfig.apiKey !== 'TU_API_KEY'){
-      if(myPresenceConnRef) return;
+      if(myPresenceConnRef || !presenceConnected) return;
       try{
         myPresenceConnRef = firebase.database().ref('presence/' + currentUserKey).push();
         myPresenceConnRef.onDisconnect().remove();
@@ -1138,10 +1153,26 @@
           const sample = conns[connKeys[0]];
           onlineUsers[uKey] = { name: (sample && sample.name) || uKey, count: connKeys.length };
         });
+        presenceError = false;
         renderPresence();
-      }, function(err){ console.error('Firebase presence error', err); });
+      }, function(err){
+        console.error('Firebase presence error', err);
+        presenceError = true;
+        renderPresence();
+      });
+
+      firebase.database().ref('.info/connected').on('value', function(s){
+        if(s.val() === true){
+          presenceConnected = true;
+          myPresenceConnRef = null; // el servidor borró la entrada anterior al desconectar
+          announcePresence();
+        } else {
+          presenceConnected = false;
+        }
+      });
 
       firebase.database().ref('.info/serverTimeOffset').on('value', function(s){ serverOffset = s.val() || 0; });
+      // (la presencia se registra en el listener de .info/connected definido arriba)
       kicksRef = firebase.database().ref('kicks');
       mutesRef = firebase.database().ref('mutes');
       kicksRef.on('value', function(s){ kicksMap = s.val() || {}; applyPenalties(); },
