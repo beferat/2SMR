@@ -1319,8 +1319,21 @@
   }
   function clearChat(){
     seenIds.clear(); fabNew = 0;
-    if(chatRef){ chatRef.remove(); }
-    else{ chatMsgs = []; saveLocal('panel-chat', chatMsgs); renderChat(); }
+    if(!chatRef){
+      chatMsgs = []; saveLocal('panel-chat', chatMsgs); renderChat();
+      return;
+    }
+    chatRef.remove().catch(function(){
+      // Si las reglas no dejan borrar el nodo entero, se borra mensaje a mensaje.
+      return chatRef.once('value').then(function(snap){
+        const upd = {};
+        snap.forEach(function(c){ upd[c.key] = null; });
+        return chatRef.update(upd);
+      });
+    }).catch(function(err){
+      console.error('No se pudo vaciar el chat', err);
+      alert('No se pudo vaciar el chat. Revisa las reglas de Firebase (nodo "chat").\n' + (err && err.message ? err.message : ''));
+    });
   }
   function removeChatMsg(id){
     if(chatRef){ chatRef.child(id).remove(); }
