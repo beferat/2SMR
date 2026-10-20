@@ -1,0 +1,1527 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MesoCalisthenics Pro - Onboarding, Calendario & Tracker</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              lime: '#10b981',
+              neon: '#22c55e',
+              cyan: '#06b6d4',
+              orange: '#f97316',
+              amber: '#f59e0b',
+              dark: '#0b1120',
+              card: '#151f32',
+              cardLight: '#1e293b',
+              border: '#334155'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Estilos personalizados y scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0b1120;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+    }
+  </style>
+</head>
+<body class="bg-[#090d16] text-slate-100 min-h-screen font-sans selection:bg-emerald-500 selection:text-black">
+
+  <!-- Header Superior -->
+  <header class="border-b border-slate-800/80 bg-slate-900/95 backdrop-blur sticky top-0 z-30 px-3 sm:px-8 py-3">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-cyan-500 flex items-center justify-center text-slate-950 shadow-lg shadow-emerald-500/20 font-black text-xl shrink-0">
+          <i class="ph-bold ph-barbell text-2xl"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg sm:text-xl font-black tracking-tight bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
+              MESO•CALISTHENICS
+            </h1>
+            <span id="userLevelBadge" class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hidden sm:inline-block">
+              Nivel: Intermedio
+            </span>
+          </div>
+          <p class="text-[11px] sm:text-xs text-slate-400 font-medium">Entrenamiento en Casa para Mesomorfo (Barra de dominadas + Suelo)</p>
+        </div>
+      </div>
+
+      <!-- Acciones de Cabecera -->
+      <div class="flex items-center gap-2">
+        <button onclick="openOnboardingModal(true)" class="px-3 py-1.5 rounded-xl border border-emerald-500/40 bg-emerald-950/30 hover:bg-emerald-900/40 text-xs font-semibold text-emerald-300 flex items-center gap-1.5 transition">
+          <i class="ph ph-sliders text-base"></i>
+          <span>Ajustar Perfil</span>
+        </button>
+        <button onclick="openGuideModal()" class="px-3 py-1.5 rounded-xl border border-slate-700 hover:border-slate-500 bg-slate-800 text-xs font-semibold text-slate-200 flex items-center gap-1.5 transition">
+          <i class="ph ph-book-open text-base text-cyan-400"></i>
+          <span class="hidden sm:inline">Guía</span>
+        </button>
+        <button onclick="applyProfileRoutineToMonth()" class="px-3 py-1.5 rounded-xl border border-amber-500/40 bg-amber-950/30 hover:bg-amber-900/40 text-xs font-semibold text-amber-300 flex items-center gap-1.5 transition" title="Rellenar el mes actual según tus respuestas del perfil">
+          <i class="ph ph-arrows-clockwise text-base"></i>
+          <span class="hidden md:inline">Autoprogramar Mes</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenido Principal -->
+  <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 space-y-8">
+    
+    <!-- Resumen del Perfil Actual Activo -->
+    <section class="rounded-2xl bg-gradient-to-r from-slate-900 via-slate-900/90 to-slate-850 border border-slate-800 p-4 sm:p-5 relative overflow-hidden shadow-xl">
+      <div class="absolute -right-8 -top-8 w-44 h-44 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="space-y-1">
+          <div class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-1 text-[11px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400">
+              <i class="ph-fill ph-check-shield"></i> Perfil Personalizado Activo
+            </span>
+            <span id="profileFrequencyBadge" class="text-[11px] font-mono text-cyan-400 bg-cyan-950/40 border border-cyan-800/50 px-2 py-0.5 rounded-md">
+              4 días / semana
+            </span>
+          </div>
+          <h2 id="profileSummaryTitle" class="text-base sm:text-lg font-bold text-white">
+            Plan Hipertrofia & Fuerza Calisténica
+          </h2>
+          <p id="profileSummaryDesc" class="text-xs text-slate-400 max-w-2xl leading-relaxed">
+            Configuración adaptada a tu dominio de la barra de dominadas. Rutina balanceada para el físico mesomorfo con control del volumen semanal.
+          </p>
+        </div>
+
+        <!-- Mini Tags de preferencias -->
+        <div id="profileFavTags" class="flex flex-wrap gap-1.5 max-w-sm">
+          <!-- Inyectado dinámicamente -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Resumen Mensual & Métricas -->
+    <section class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+          <i class="ph ph-chart-pie-slice text-emerald-400 text-lg"></i>
+          Rendimiento & Proceso Mensual
+        </h3>
+        <span id="monthlyMonthLabel" class="text-xs font-semibold text-slate-300 font-mono"></span>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+        <!-- Completados -->
+        <div class="p-4 rounded-xl bg-slate-900 border border-slate-800/90 hover:border-slate-700 transition">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-slate-400">Completados</span>
+            <div class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+              <i class="ph-bold ph-check text-sm"></i>
+            </div>
+          </div>
+          <p id="statCompletedDays" class="text-2xl font-black text-white mt-2">0</p>
+          <span class="text-[11px] text-emerald-400/90 font-medium" id="statCompletedSessions">sesiones finalizadas</span>
+        </div>
+
+        <!-- Adherencia -->
+        <div class="p-4 rounded-xl bg-slate-900 border border-slate-800/90 hover:border-slate-700 transition">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-slate-400">Adherencia</span>
+            <div class="w-7 h-7 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center">
+              <i class="ph-bold ph-trend-up text-sm"></i>
+            </div>
+          </div>
+          <p id="statAdherence" class="text-2xl font-black text-cyan-400 mt-2">0%</p>
+          <span class="text-[11px] text-slate-400" id="statAdherenceSub">de los días programados</span>
+        </div>
+
+        <!-- Saltados -->
+        <div class="p-4 rounded-xl bg-slate-900 border border-slate-800/90 hover:border-slate-700 transition">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-slate-400">Saltados / No pude</span>
+            <div class="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center">
+              <i class="ph-bold ph-x text-sm"></i>
+            </div>
+          </div>
+          <p id="statMissedDays" class="text-2xl font-black text-rose-400 mt-2">0</p>
+          <span class="text-[11px] text-slate-400">recalendarizados</span>
+        </div>
+
+        <!-- Descansos -->
+        <div class="p-4 rounded-xl bg-slate-900 border border-slate-800/90 hover:border-slate-700 transition">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-slate-400">Descansos</span>
+            <div class="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
+              <i class="ph-bold ph-moon text-sm"></i>
+            </div>
+          </div>
+          <p id="statRestDays" class="text-2xl font-black text-indigo-300 mt-2">0</p>
+          <span class="text-[11px] text-slate-400">recuperación activa</span>
+        </div>
+      </div>
+
+      <!-- Barra de progreso visual mensual & Balance Muscular -->
+      <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-4">
+        <div>
+          <div class="flex justify-between items-center text-xs mb-2">
+            <span class="text-slate-300 font-semibold flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block"></span>
+              Progreso del Mes en Curso
+            </span>
+            <span id="progressBarLabel" class="text-slate-400 font-mono">0 / 18 sesiones (0%)</span>
+          </div>
+          <div class="w-full bg-slate-950 h-3 rounded-full overflow-hidden p-0.5 border border-slate-800">
+            <div id="progressBarFill" class="h-full bg-gradient-to-r from-emerald-500 to-cyan-400 rounded-full transition-all duration-500 w-0"></div>
+          </div>
+        </div>
+
+        <!-- Balance muscular detallado -->
+        <div class="pt-3 border-t border-slate-800/80">
+          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">Distribución Muscular Realizada</span>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between">
+              <span class="flex items-center gap-2 text-slate-300">
+                <span class="w-2.5 h-2.5 rounded bg-blue-500"></span> Tirón (Barra)
+              </span>
+              <span id="countPull" class="font-mono font-bold text-blue-400 text-sm">0</span>
+            </div>
+            <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between">
+              <span class="flex items-center gap-2 text-slate-300">
+                <span class="w-2.5 h-2.5 rounded bg-amber-500"></span> Empuje (Suelo)
+              </span>
+              <span id="countPush" class="font-mono font-bold text-amber-400 text-sm">0</span>
+            </div>
+            <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between">
+              <span class="flex items-center gap-2 text-slate-300">
+                <span class="w-2.5 h-2.5 rounded bg-purple-500"></span> Pierna & Core
+              </span>
+              <span id="countLegs" class="font-mono font-bold text-purple-400 text-sm">0</span>
+            </div>
+            <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between">
+              <span class="flex items-center gap-2 text-slate-300">
+                <span class="w-2.5 h-2.5 rounded bg-teal-500"></span> Torso Completo
+              </span>
+              <span id="countTorso" class="font-mono font-bold text-teal-400 text-sm">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Calendario Mensual Interactivo -->
+    <section class="space-y-4">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-800">
+        <!-- Navegación Mes / Año -->
+        <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
+          <button onclick="changeMonth(-1)" class="p-2 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 transition" aria-label="Mes anterior">
+            <i class="ph-bold ph-caret-left text-lg"></i>
+          </button>
+          <div class="text-center px-4">
+            <h2 id="calendarTitle" class="text-base sm:text-lg font-bold text-white capitalize">Mes Año</h2>
+            <span class="text-[11px] text-slate-400">Haz clic en un día para registrar series o cambiarlo</span>
+          </div>
+          <button onclick="changeMonth(1)" class="p-2 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 transition" aria-label="Mes siguiente">
+            <i class="ph-bold ph-caret-right text-lg"></i>
+          </button>
+        </div>
+
+        <!-- Leyenda interactiva -->
+        <div class="flex flex-wrap items-center justify-center gap-2 text-xs">
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-950/80 text-emerald-400 border border-emerald-700/50">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Completado
+          </span>
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-950/80 text-rose-400 border border-rose-700/50">
+            <span class="w-2 h-2 rounded-full bg-rose-400"></span> No pude
+          </span>
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 border border-slate-700">
+            <span class="w-2 h-2 rounded-full bg-slate-400"></span> Pendiente
+          </span>
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-indigo-950/80 text-indigo-300 border border-indigo-700/50">
+            <span class="w-2 h-2 rounded-full bg-indigo-400"></span> Descanso
+          </span>
+        </div>
+      </div>
+
+      <!-- Cuadrícula -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
+        <div class="calendar-grid bg-slate-950/90 border-b border-slate-800 text-center font-bold text-xs text-slate-400 py-3 uppercase tracking-wider">
+          <div>Lun</div>
+          <div>Mar</div>
+          <div>Mié</div>
+          <div>Jue</div>
+          <div>Vie</div>
+          <div>Sáb</div>
+          <div>Dom</div>
+        </div>
+
+        <div id="calendarDaysGrid" class="calendar-grid p-1.5 sm:p-2 gap-1.5 sm:gap-2 min-h-[460px] bg-slate-950/40">
+          <!-- Inyectado por JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Informe de Evaluación de Fin de Mes -->
+    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 space-y-4 shadow-xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <i class="ph-bold ph-newspaper-clipping text-emerald-400 text-xl"></i>
+          Diagnóstico y Resumen de Fin de Mes
+        </h3>
+        <button onclick="exportMonthlyReport()" class="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg text-slate-200 flex items-center gap-1.5 transition">
+          <i class="ph ph-copy"></i> Copiar Informe Completo
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5 text-sm">
+        <div class="space-y-3">
+          <h4 class="font-semibold text-slate-200 flex items-center gap-2 text-xs uppercase tracking-wider">
+            <i class="ph-fill ph-check-circle text-emerald-400"></i> Análisis Biomecánico para Mesomorfo:
+          </h4>
+          <div id="analysisRecommendation" class="text-slate-300 bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs sm:text-sm leading-relaxed">
+            Completa o marca tus sesiones para desbloquear el diagnóstico adaptativo.
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <h4 class="font-semibold text-slate-200 flex items-center gap-2 text-xs uppercase tracking-wider">
+            <i class="ph-fill ph-lightbulb text-amber-400"></i> Notas y Récords Recientes del Mes:
+          </h4>
+          <div id="monthlyNotesLog" class="bg-slate-950 p-4 rounded-xl border border-slate-800 max-h-48 overflow-y-auto space-y-2 text-xs text-slate-300">
+            <!-- Inyectado con notas del mes -->
+            <p class="text-slate-500 italic">No hay notas registradas todavía en este mes.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==========================================
+       MODAL 1: CUESTIONARIO / ONBOARDING INICIAL
+       ========================================== -->
+  <div id="onboardingModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-5 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-2xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in duration-200">
+      
+      <!-- Encabezado del asistente -->
+      <div class="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/80">
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+            <i class="ph-bold ph-sparkle"></i> Configuración Personalizada
+          </span>
+          <h3 class="text-lg font-black text-white">Perfil Mesomorfo & Calistenia en Casa</h3>
+        </div>
+        <button id="closeOnboardingBtn" onclick="closeOnboardingModal()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition hidden">
+          <i class="ph-bold ph-x text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Cuerpo del cuestionario (Preguntas 1 a 5) -->
+      <form id="onboardingForm" onsubmit="handleOnboardingSubmit(event)" class="p-5 sm:p-6 overflow-y-auto space-y-6 text-sm">
+        
+        <!-- P1: Nivel de Dominadas -->
+        <div class="space-y-2.5">
+          <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+            <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs">1</span>
+            ¿Cuál es tu nivel actual con la barra de dominadas?
+          </label>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <label class="relative border border-slate-800 bg-slate-950/70 p-3 rounded-xl cursor-pointer hover:border-emerald-500/60 transition flex flex-col justify-between">
+              <input type="radio" name="pullupLevel" value="beginner" class="peer sr-only">
+              <div>
+                <span class="block text-xs font-bold text-white peer-checked:text-emerald-400">Principiante</span>
+                <span class="block text-[11px] text-slate-400 mt-1">0 a 3 dominadas o negativas/asistidas con pie.</span>
+              </div>
+              <div class="mt-2 text-right">
+                <span class="inline-block w-4 h-4 rounded-full border border-slate-700 peer-checked:bg-emerald-500 peer-checked:border-emerald-400"></span>
+              </div>
+            </label>
+
+            <label class="relative border border-slate-800 bg-slate-950/70 p-3 rounded-xl cursor-pointer hover:border-emerald-500/60 transition flex flex-col justify-between">
+              <input type="radio" name="pullupLevel" value="intermediate" checked class="peer sr-only">
+              <div>
+                <span class="block text-xs font-bold text-white peer-checked:text-emerald-400">Intermedio</span>
+                <span class="block text-[11px] text-slate-400 mt-1">4 a 10 dominadas estrictas con barbilla sobre la barra.</span>
+              </div>
+              <div class="mt-2 text-right">
+                <span class="inline-block w-4 h-4 rounded-full border border-slate-700 peer-checked:bg-emerald-500 peer-checked:border-emerald-400"></span>
+              </div>
+            </label>
+
+            <label class="relative border border-slate-800 bg-slate-950/70 p-3 rounded-xl cursor-pointer hover:border-emerald-500/60 transition flex flex-col justify-between">
+              <input type="radio" name="pullupLevel" value="advanced" class="peer sr-only">
+              <div>
+                <span class="block text-xs font-bold text-white peer-checked:text-emerald-400">Avanzado</span>
+                <span class="block text-[11px] text-slate-400 mt-1">10+ dominadas, tempo lento o variaciones explosivas.</span>
+              </div>
+              <div class="mt-2 text-right">
+                <span class="inline-block w-4 h-4 rounded-full border border-slate-700 peer-checked:bg-emerald-500 peer-checked:border-emerald-400"></span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- P2: Objetivo Principal -->
+        <div class="space-y-2.5">
+          <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+            <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-xs">2</span>
+            ¿Cuál es tu objetivo prioritario?
+          </label>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <label class="border border-slate-800 bg-slate-950/70 p-3 rounded-xl cursor-pointer hover:border-cyan-500/60 transition flex items-start gap-2.5">
+              <input type="radio" name="goal" value="hypertrophy" checked class="mt-1 text-cyan-500 focus:ring-cyan-500">
+              <div>
+                <span class="font-bold text-xs text-white block">Hipertrofia & Densidad</span>
+                <span class="text-[11px] text-slate-400">Espalda en V ancha, brazos y hombros rocosos.</span>
+              </div>
+            </label>
+
+            <label class="border border-slate-800 bg-slate-950/70 p-3 rounded-xl cursor-pointer hover:border-cyan-500/60 transition flex items-start gap-2.5">
+              <input type="radio" name="goal" value="strength" class="mt-1 text-cyan-500 focus:ring-cyan-500">
+              <div>
+                <span class="font-bold text-xs text-white block">Fuerza & Control</span>
+                <span class="text-[11px] text-slate-400">Subir repeticiones estrictas y estabilidad escapular.</span>
+              </div>
+            </label>
+
+            <label class="border border-slate-800 bg-slate-950/70 p-3 rounded-xl cursor-pointer hover:border-cyan-500/60 transition flex items-start gap-2.5">
+              <input type="radio" name="goal" value="endurance" class="mt-1 text-cyan-500 focus:ring-cyan-500">
+              <div>
+                <span class="font-bold text-xs text-white block">Definición & Resistencia</span>
+                <span class="text-[11px] text-slate-400">Series en superserie con menor descanso.</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- P3: Frecuencia Semanal -->
+        <div class="space-y-2.5">
+          <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+            <span class="w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-xs">3</span>
+            Frecuencia semanal deseada:
+          </label>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <label class="border border-slate-800 bg-slate-950/70 p-3 rounded-xl cursor-pointer hover:border-amber-500/60 transition">
+              <div class="flex items-center gap-2">
+                <input type="radio" name="frequency" value="3" class="text-amber-500 focus:ring-amber-500">
+                <span class="font-bold text-xs text-white">3 Días / sem</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1 pl-5">Fullbody o Tirón/Empuje/Pierna básico con recuperación extendida.</p>
+            </label>
+
+            <label class="border border-slate-800 bg-slate-950/70 p-3 rounded-xl cursor-pointer hover:border-amber-500/60 transition">
+              <div class="flex items-center gap-2">
+                <input type="radio" name="frequency" value="4" checked class="text-amber-500 focus:ring-amber-500">
+                <span class="font-bold text-xs text-white">4 Días / sem (Recomendado)</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1 pl-5">División óptima mesomorfa: Torso / Pierna / Tirón / Empuje.</p>
+            </label>
+
+            <label class="border border-slate-800 bg-slate-950/70 p-3 rounded-xl cursor-pointer hover:border-amber-500/60 transition">
+              <div class="flex items-center gap-2">
+                <input type="radio" name="frequency" value="5" class="text-amber-500 focus:ring-amber-500">
+                <span class="font-bold text-xs text-white">5 Días / sem</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1 pl-5">Push / Pull / Legs con alto volumen de hipertrofia.</p>
+            </label>
+          </div>
+        </div>
+
+        <!-- P4: Ejercicios de Preferencia -->
+        <div class="space-y-2.5">
+          <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+            <span class="w-5 h-5 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center text-xs">4</span>
+            Ejercicios favoritos o variantes que prefieres priorizar:
+          </label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+            <label class="flex items-center gap-2 p-2.5 bg-slate-950 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+              <input type="checkbox" name="favExercises" value="pullups_pronas" checked class="rounded text-emerald-500">
+              <span class="text-slate-200">Dominadas pronas clásicas</span>
+            </label>
+            <label class="flex items-center gap-2 p-2.5 bg-slate-950 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+              <input type="checkbox" name="favExercises" value="chinups" checked class="rounded text-emerald-500">
+              <span class="text-slate-200">Chin-ups (Supinas para bíceps)</span>
+            </label>
+            <label class="flex items-center gap-2 p-2.5 bg-slate-950 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+              <input type="checkbox" name="favExercises" value="commando" checked class="rounded text-emerald-500">
+              <span class="text-slate-200">Commando pull-ups (agarre neutro)</span>
+            </label>
+            <label class="flex items-center gap-2 p-2.5 bg-slate-950 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+              <input type="checkbox" name="favExercises" value="pushup_decline_diamond" checked class="rounded text-emerald-500">
+              <span class="text-slate-200">Flexiones diamante & declinadas</span>
+            </label>
+            <label class="flex items-center gap-2 p-2.5 bg-slate-950 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+              <input type="checkbox" name="favExercises" value="pike_pushup" checked class="rounded text-emerald-500">
+              <span class="text-slate-200">Pike push-ups (hombros)</span>
+            </label>
+            <label class="flex items-center gap-2 p-2.5 bg-slate-950 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+              <input type="checkbox" name="favExercises" value="bulgarian_squat" checked class="rounded text-emerald-500">
+              <span class="text-slate-200">Sentadillas búlgaras / pistols</span>
+            </label>
+            <label class="flex items-center gap-2 p-2.5 bg-slate-950 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+              <input type="checkbox" name="favExercises" value="leg_raises" checked class="rounded text-emerald-500">
+              <span class="text-slate-200">Elevación de piernas colgado</span>
+            </label>
+            <label class="flex items-center gap-2 p-2.5 bg-slate-950 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700">
+              <input type="checkbox" name="favExercises" value="dips_chairs" class="rounded text-emerald-500">
+              <span class="text-slate-200">Fondos entre sillas/muebles</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- P5: Enfoque de Volumen -->
+        <div class="space-y-2.5">
+          <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+            <span class="w-5 h-5 rounded-full bg-teal-500/20 text-teal-400 flex items-center justify-center text-xs">5</span>
+            Enfoque de énfasis para tu somatotipo mesomorfo:
+          </label>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <label class="border border-slate-800 bg-slate-950/70 p-3 rounded-xl cursor-pointer hover:border-teal-500/60 transition">
+              <input type="radio" name="focus" value="standard" checked class="text-teal-500">
+              <span class="font-bold text-xs text-white block mt-1">Equilibrado</span>
+              <p class="text-[11px] text-slate-400">Proporción 1:1 entre empuje, tirón y tren inferior.</p>
+            </label>
+
+            <label class="border border-slate-800 bg-slate-950/70 p-3 rounded-xl cursor-pointer hover:border-teal-500/60 transition">
+              <input type="radio" name="focus" value="back_arms" class="text-teal-500">
+              <span class="font-bold text-xs text-white block mt-1">Énfasis Espalda & Bíceps</span>
+              <p class="text-[11px] text-slate-400">Mayor frecuencia de barra y variantes de tirón.</p>
+            </label>
+
+            <label class="border border-slate-800 bg-slate-950/70 p-3 rounded-xl cursor-pointer hover:border-teal-500/60 transition">
+              <input type="radio" name="focus" value="lower_core" class="text-teal-500">
+              <span class="font-bold text-xs text-white block mt-1">Énfasis Pierna & Core</span>
+              <p class="text-[11px] text-slate-400">Intensidad extra en unilaterales y abdomen suspendido.</p>
+            </label>
+          </div>
+        </div>
+
+        <!-- Botón de guardar -->
+        <div class="pt-3 border-t border-slate-800 flex justify-end gap-3">
+          <button type="submit" class="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition">
+            <i class="ph-bold ph-check"></i>
+            Guardar & Generar Mi Plan
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL 2: DETALLE / EDICIÓN DEL DÍA
+       ========================================== -->
+  <div id="dayModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Cabecera -->
+      <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between bg-slate-900">
+        <div>
+          <span id="modalDateBadge" class="text-xs font-mono text-emerald-400 uppercase tracking-wider font-semibold">FECHA</span>
+          <h3 id="modalTitle" class="text-lg font-bold text-white">Editar Día de Entrenamiento</h3>
+        </div>
+        <button onclick="closeDayModal()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition">
+          <i class="ph-bold ph-x text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Contenido -->
+      <div class="p-4 sm:p-6 overflow-y-auto space-y-5">
+        
+        <!-- Estado -->
+        <div>
+          <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">¿Pudiste entrenar este día?</label>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <button type="button" onclick="setDayStatus('completed')" id="btnStatusCompleted" class="status-btn p-2 rounded-xl border text-xs font-semibold flex flex-col items-center justify-center gap-1 transition">
+              <i class="ph-bold ph-check-circle text-emerald-400 text-lg"></i>
+              <span>Completado</span>
+            </button>
+            <button type="button" onclick="setDayStatus('pending')" id="btnStatusPending" class="status-btn p-2 rounded-xl border text-xs font-semibold flex flex-col items-center justify-center gap-1 transition">
+              <i class="ph-bold ph-clock text-slate-400 text-lg"></i>
+              <span>Pendiente</span>
+            </button>
+            <button type="button" onclick="setDayStatus('missed')" id="btnStatusMissed" class="status-btn p-2 rounded-xl border text-xs font-semibold flex flex-col items-center justify-center gap-1 transition">
+              <i class="ph-bold ph-x-circle text-rose-400 text-lg"></i>
+              <span>No pude / Saltado</span>
+            </button>
+            <button type="button" onclick="setDayStatus('rest')" id="btnStatusRest" class="status-btn p-2 rounded-xl border text-xs font-semibold flex flex-col items-center justify-center gap-1 transition">
+              <i class="ph-bold ph-moon text-indigo-400 text-lg"></i>
+              <span>Descanso</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Mover / Reprogramar este entrenamiento -->
+        <div class="p-3 bg-slate-950/80 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
+          <div class="text-xs">
+            <span class="font-bold text-slate-300 block">¿Deseas mover esta sesión a mañana?</span>
+            <span class="text-slate-400 text-[11px]">Si hoy no pudiste, intercambia automáticamente con el siguiente día.</span>
+          </div>
+          <button type="button" onclick="postponeCurrentWorkoutToTomorrow()" class="px-3 py-1.5 rounded-lg border border-cyan-500/40 text-cyan-300 hover:bg-cyan-950/40 text-xs font-bold shrink-0 transition flex items-center gap-1">
+            <i class="ph ph-calendar-plus"></i> Mover a Mañana
+          </button>
+        </div>
+
+        <!-- Tipo de Rutina -->
+        <div>
+          <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Tipo de Rutina Asignada</label>
+          <select id="routineSelect" onchange="onRoutineTypeChange(this.value)" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm font-medium text-white focus:outline-none focus:border-emerald-500">
+            <option value="pull">Tirón (Dominadas, Espalda & Bíceps)</option>
+            <option value="push">Empuje (Pectoral, Hombros & Tríceps en Suelo)</option>
+            <option value="legs_core">Pierna & Core (Búlgaras, Pistols & Abdomen colgado)</option>
+            <option value="torso">Torso Completo (Barra + Empuje Integrado)</option>
+            <option value="rest">Día de Descanso Programado</option>
+            <option value="custom">Personalizado</option>
+          </select>
+        </div>
+
+        <!-- Lista de Ejercicios del Día -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Series y Ejercicios</label>
+            <span class="text-[11px] text-slate-400">Marca las series completadas</span>
+          </div>
+          <div id="exerciseList" class="space-y-2.5">
+            <!-- Ejercicios inyectados por JS -->
+          </div>
+        </div>
+
+        <!-- Notas Personales -->
+        <div>
+          <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Notas Personales (Récords, Repeticiones, Sensaciones)</label>
+          <textarea id="modalNotes" rows="2" placeholder="Ej: Hice 4x8 dominadas pronas estrictas + 3x10 flexiones diamante lentas. Sin dolor en codo." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs sm:text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500"></textarea>
+        </div>
+
+      </div>
+
+      <!-- Pie del modal -->
+      <div class="p-4 bg-slate-950 border-t border-slate-800 flex items-center justify-between gap-3">
+        <button onclick="deleteDayRecord()" class="px-3 py-2 text-xs font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 rounded-lg transition flex items-center gap-1">
+          <i class="ph ph-trash"></i> Resetear Día
+        </button>
+        <div class="flex gap-2">
+          <button onclick="closeDayModal()" class="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 transition">
+            Cancelar
+          </button>
+          <button onclick="saveDayModal()" class="px-5 py-2 text-xs font-bold rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition flex items-center gap-1.5 shadow-lg shadow-emerald-500/20">
+            <i class="ph-bold ph-floppy-disk text-sm"></i> Guardar Cambios
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL 3: GUÍA MESOMORFO
+       ========================================== -->
+  <div id="guideModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between">
+        <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+          <i class="ph-bold ph-book-open text-cyan-400"></i> Guía Científica para Mesomorfo en Casa
+        </h3>
+        <button onclick="closeGuideModal()" class="text-slate-400 hover:text-white p-1">
+          <i class="ph-bold ph-x text-lg"></i>
+        </button>
+      </div>
+
+      <div class="p-5 overflow-y-auto space-y-4 text-xs sm:text-sm text-slate-300 leading-relaxed">
+        <div class="p-3.5 bg-slate-950 rounded-xl border border-slate-800">
+          <h4 class="font-bold text-emerald-400 text-sm mb-1">1. Ventaja y Peligro del Mesomorfo:</h4>
+          <p>Tu sistema neuromuscular gana densidad rápidamente con series intensas. Sin embargo, tus tendones tardan más en adaptarse que tus músculos: no sacrifiques el rango completo ni te balancees en la barra por sumar repeticiones sucias.</p>
+        </div>
+
+        <div class="p-3.5 bg-slate-950 rounded-xl border border-slate-800">
+          <h4 class="font-bold text-cyan-400 text-sm mb-1">2. Clave en la Barra de Dominadas:</h4>
+          <p>Utiliza agarres variados:</p>
+          <ul class="list-disc list-inside mt-2 space-y-1 text-slate-400">
+            <li><b class="text-slate-200">Prono (Pull-ups):</b> Espalda en V amplia y activación del dorsal ancho.</li>
+            <li><b class="text-slate-200">Supino (Chin-ups):</b> Carga masiva en los flexores del codo (bíceps).</li>
+            <li><b class="text-slate-200">Neutro / Comando:</b> Máxima potencia con mínima torsión articular en muñecas.</li>
+          </ul>
+        </div>
+
+        <div class="p-3.5 bg-slate-950 rounded-xl border border-slate-800">
+          <h4 class="font-bold text-amber-400 text-sm mb-1">3. Sobrecarga en Suelo sin Mancuernas:</h4>
+          <p>Para progresar en flexiones sin pesas, usa tempo (3 segundos de bajada + 1 de pausa abajo) o eleva los pies sobre una silla o sofá para cargar hasta el 73% de tu peso corporal en el pecho y hombros.</p>
+        </div>
+      </div>
+
+      <div class="p-4 bg-slate-950 border-t border-slate-800 text-right">
+        <button onclick="closeGuideModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold">
+          Entendido
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toastMessage" class="fixed bottom-5 right-5 z-50 bg-slate-900 border border-emerald-500/50 text-white text-xs px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none">
+    <i class="ph-bold ph-check text-emerald-400 text-base"></i>
+    <span id="toastText">Operación realizada con éxito</span>
+  </div>
+
+  <!-- ==========================================
+       LÓGICA JAVASCRIPT PURA
+       ========================================== -->
+  <script>
+    /* Claves de almacenamiento local */
+    const STORAGE_KEY_DATA = 'meso_calisthenics_training_data_v2';
+    const STORAGE_KEY_PROFILE = 'meso_calisthenics_profile_v2';
+
+    /* Perfil por defecto */
+    let userProfile = {
+      pullupLevel: 'intermediate', // beginner, intermediate, advanced
+      goal: 'hypertrophy',         // hypertrophy, strength, endurance
+      frequency: '4',              // '3', '4', '5'
+      favExercises: ['pullups_pronas', 'chinups', 'commando', 'pushup_decline_diamond', 'pike_pushup', 'bulgarian_squat', 'leg_raises'],
+      focus: 'standard'            // standard, back_arms, lower_core
+    };
+
+    let appData = {};
+    let currentViewDate = new Date();
+    let activeModalDayKey = null;
+    let activeModalStatus = 'pending';
+
+    /* Catálogo de ejercicios adaptativo según nivel de dominadas */
+    function getExerciseLibraryByProfile() {
+      const level = userProfile.pullupLevel || 'intermediate';
+      const goal = userProfile.goal || 'hypertrophy';
+
+      // Variantes de dominadas según nivel
+      let pullupMain = {
+        name: "Dominadas Pronas Estrictas",
+        target: "4 series x 6-10 reps (RIR 1-2)",
+        tips: "Barbilla sobre la barra, bloqueo completo abajo sin rebote."
+      };
+      let chinupMain = {
+        name: "Chin-ups Supinas (Foco Bíceps)",
+        target: "3 series x 8-10 reps",
+        tips: "Palmas mirándote, control excéntrico de 3 segundos al bajar."
+      };
+
+      if (level === 'beginner') {
+        pullupMain = {
+          name: "Dominadas Negativas Lentas / Asistidas con Apoyo",
+          target: "4 series x 4-6 reps (5 seg bajada)",
+          tips: "Sube con un salto o apoyo y baja lo más lento posible para ganar fuerza."
+        };
+        chinupMain = {
+          name: "Aguante Isométrico en Barra Arriba + Chin-ups Asistidas",
+          target: "3 series x 15 segs aguante + 5 reps",
+          tips: "Apreta fuertemente dorsales y bíceps en el punto más alto."
+        };
+      } else if (level === 'advanced') {
+        pullupMain = {
+          name: "Dominadas Pronas con Parada en el Pecho / Tempo 3-1-1",
+          target: "4 series x 8-12 reps estrictas",
+          tips: "Toca la parte superior del pecho en la barra. Máxima tensión mecánica."
+        };
+        chinupMain = {
+          name: "Dominadas Supinas con Salida L-Sit o Pausa en 90°",
+          target: "3 series x 8-10 reps",
+          tips: "Eleva ligeramente rodillas o mantén L-sit para añadir reclutamiento."
+        };
+      }
+
+      // Repeticiones objetivo según meta
+      let repSchemePush = goal === 'strength' ? "4 series x 8-10 reps lentas" : (goal === 'endurance' ? "4 series x 15-20 reps" : "4 series x 10-14 reps con pausa");
+
+      return {
+        pull: {
+          name: "Tirón (Pull - Barra)",
+          color: "blue",
+          badgeBg: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+          description: "Espalda en V, redondo mayor, bíceps y fuerza de agarre",
+          exercises: [
+            { id: "p1", name: pullupMain.name, target: pullupMain.target, tips: pullupMain.tips },
+            { id: "p2", name: chinupMain.name, target: chinupMain.target, tips: chinupMain.tips },
+            { id: "p3", name: "Dominadas Comando (Agarre Neutro/Mixto)", target: "3 series x 6-8 reps por lado", tips: "Agarre alterno en la barra para braquiorradial y salud articular." },
+            { id: "p4", name: "Elevación de Piernas Colgado en Barra (Core)", target: "3 series x 10-12 reps", tips: "Evita el balanceo; dobla rodillas si cuesta mantener la pelvis fija." },
+            { id: "p5", name: "Dead Hang (Colgado Pasivo de Barra)", target: "3 series x 30-45 segs", tips: "Descomprime discos vertebrales y fortalece antebrazos." }
+          ]
+        },
+        push: {
+          name: "Empuje (Push - Suelo)",
+          color: "amber",
+          badgeBg: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+          description: "Pectoral, hombro anterior y tríceps con peso corporal",
+          exercises: [
+            { id: "u1", name: "Flexiones con Pausa en Suelo", target: repSchemePush, tips: "Pecho a 1 cm del suelo, pausa de 1 segundo para anular el rebote." },
+            { id: "u2", name: "Pike Push-ups (Enfoque en Deltoides)", target: "3 series x 8-12 reps", tips: "Caderas altas en V invertida, la cabeza desciende por delante de las manos." },
+            { id: "u3", name: "Flexiones Diamante (Foco en Tríceps)", target: "3 series x 10-14 reps", tips: "Manos juntas formando un triángulo, codos pegados al cuerpo." },
+            { id: "u4", name: "Flexiones Declinadas (Pies en silla o cama)", target: "3 series x 10-12 reps", tips: "Carga la porción clavicular del pecho para aspecto más denso." },
+            { id: "u5", name: "Fondos en Sillas o Sofá", target: "3 series x 12-15 reps", tips: "Baja a 90 grados de flexión sin encoger hombros hacia el cuello." }
+          ]
+        },
+        legs_core: {
+          name: "Pierna & Core",
+          color: "purple",
+          badgeBg: "bg-purple-500/20 text-purple-400 border-purple-500/30",
+          description: "Cadena posterior, cuádriceps unilaterales y abdomen",
+          exercises: [
+            { id: "l1", name: "Sentadillas Búlgaras (Pie en sofá/silla)", target: "4 series x 10-12 reps / pierna", tips: "Mantén el torso ligeramente inclinado hacia adelante para máximo reclutamiento glúteo." },
+            { id: "l2", name: "Pistol Squat Asistida (con barra o pared)", target: "3 series x 6-8 reps / pierna", tips: "Sostén la barra de calistenia para controlar la bajada suave." },
+            { id: "l3", name: "Elevaciones de Talón en Escalón (Gemelos)", target: "4 series x 15-20 reps con pausa arriba", tips: "Sube explosivo y aguanta 2 segundos en contracción máxima." },
+            { id: "l4", name: "Plancha Abdominal + Hollow Body", target: "3 series x 45 segs", tips: "Retroversion de pelvis; abdomen de roca para transferir fuerza a las dominadas." }
+          ]
+        },
+        torso: {
+          name: "Torso Completo (Barra + Suelo)",
+          color: "teal",
+          badgeBg: "bg-teal-500/20 text-teal-400 border-teal-500/30",
+          description: "Superseries combinadas de dominadas y flexiones",
+          exercises: [
+            { id: "t1", name: "Superserie: Dominadas Pronas + Flexiones Suelo", target: "4 rondas: 6-8 dominadas + 12 flexiones", tips: "Descanso de 90 segundos entre rondas completas." },
+            { id: "t2", name: "Superserie: Chin-ups + Flexiones Diamante", target: "3 rondas: 6-8 chin-ups + 10 diamantes", tips: "Bomba muscular tremenda para bíceps y tríceps." },
+            { id: "t3", name: "Elevación de Rodillas Colgado + Pike Push-ups", target: "3 series: 12 rodillas + 8 pike", tips: "Hombro y core en un bloque denso." }
+          ]
+        },
+        rest: {
+          name: "Descanso Activo",
+          color: "indigo",
+          badgeBg: "bg-indigo-500/20 text-indigo-400 border-indigo-500/30",
+          description: "Regeneración del sistema nervioso y estiramientos",
+          exercises: [
+            { id: "r1", name: "Descompresión Colgado de la Barra", target: "3 series x 30 segs colgado pasivo", tips: "Relaja las lumbares y permite que el peso elongue los dorsales." },
+            { id: "r2", name: "Movilidad de Hombros y Muñecas", target: "10-15 minutos suaves", tips: "Círculos con brazos, estiramiento de antebrazos y cuello." }
+          ]
+        },
+        custom: {
+          name: "Personalizado",
+          color: "emerald",
+          badgeBg: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+          description: "Sesión personalizada a criterio propio",
+          exercises: [
+            { id: "c1", name: "Ejercicio libre 1", target: "3-4 series", tips: "Anota tus series en el recuadro de notas." },
+            { id: "c2", name: "Ejercicio libre 2", target: "3-4 series", tips: "Controla la técnica." }
+          ]
+        }
+      };
+    }
+
+    /* Obtener la plantilla semanal según la frecuencia del cuestionario */
+    function getWeekPatternForProfile() {
+      const freq = userProfile.frequency || '4';
+      const focus = userProfile.focus || 'standard';
+
+      // Días de la semana en JS: 0=Dom, 1=Lun, 2=Mar, 3=Mié, 4=Jue, 5=Vie, 6=Sáb
+      if (freq === '3') {
+        // Lun: Tirón, Mié: Empuje, Vie: Pierna & Core
+        return ["rest", "pull", "rest", "push", "rest", "legs_core", "rest"];
+      } else if (freq === '5') {
+        if (focus === 'back_arms') {
+          // Énfasis tirón: Lun: Tirón, Mar: Empuje, Mié: Pierna, Jue: Tirón (Chin-ups), Vie: Empuje/Torso
+          return ["rest", "pull", "push", "legs_core", "pull", "torso", "rest"];
+        }
+        // PPL clásica 5 días: Lun: Tirón, Mar: Empuje, Mié: Pierna, Jue: Descanso, Vie: Tirón, Sáb: Empuje
+        return ["rest", "pull", "push", "legs_core", "rest", "pull", "push"];
+      } else {
+        // 4 días (Recomendado estándar)
+        if (focus === 'back_arms') {
+          return ["rest", "pull", "push", "rest", "pull", "torso", "rest"];
+        } else if (focus === 'lower_core') {
+          return ["rest", "legs_core", "pull", "rest", "legs_core", "push", "rest"];
+        }
+        // Estándar 4 días: Lun: Tirón, Mar: Empuje, Jue: Pierna/Core, Vie: Torso
+        return ["rest", "pull", "push", "rest", "legs_core", "torso", "rest"];
+      }
+    }
+
+    /* Guardar y cargar datos */
+    function loadSavedData() {
+      try {
+        const rawProfile = localStorage.getItem(STORAGE_KEY_PROFILE);
+        if (rawProfile) {
+          userProfile = { ...userProfile, ...JSON.parse(rawProfile) };
+        } else {
+          // Si nunca ha entrado, abrimos el onboarding automáticamente
+          setTimeout(() => openOnboardingModal(false), 300);
+        }
+
+        const rawData = localStorage.getItem(STORAGE_KEY_DATA);
+        if (rawData) {
+          appData = JSON.parse(rawData);
+        } else {
+          appData = {};
+        }
+      } catch (e) {
+        console.error("Error al cargar localStorage:", e);
+      }
+    }
+
+    function saveToLocalStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY_PROFILE, JSON.stringify(userProfile));
+        localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(appData));
+      } catch (e) {
+        console.error("Error guardando:", e);
+      }
+    }
+
+    function formatDateKey(year, monthIndex, day) {
+      const m = String(monthIndex + 1).padStart(2, '0');
+      const d = String(day).padStart(2, '0');
+      return `${year}-${m}-${d}`;
+    }
+
+    /* Autoprogramar el mes con el patrón del cuestionario */
+    function applyProfileRoutineToMonth() {
+      const year = currentViewDate.getFullYear();
+      const month = currentViewDate.getMonth();
+      const totalDays = new Date(year, month + 1, 0).getDate();
+      const pattern = getWeekPatternForProfile();
+
+      for (let day = 1; day <= totalDays; day++) {
+        const dateObj = new Date(year, month, day);
+        const dayOfWeek = dateObj.getDay();
+        const routineType = pattern[dayOfWeek];
+        const key = formatDateKey(year, month, day);
+
+        const prev = appData[key] || {};
+        appData[key] = {
+          routineType: routineType,
+          status: routineType === 'rest' ? 'rest' : (prev.status || 'pending'),
+          completedExercises: prev.completedExercises || {},
+          notes: prev.notes || ""
+        };
+      }
+
+      saveToLocalStorage();
+      renderCalendar();
+      updateMonthlyStats();
+      showToast("Mes autoprogramado según tu perfil actual");
+    }
+
+    function populateMonthIfEmpty(year, monthIndex) {
+      const totalDays = new Date(year, monthIndex + 1, 0).getDate();
+      let hasEntries = false;
+
+      for (let day = 1; day <= totalDays; day++) {
+        const key = formatDateKey(year, monthIndex, day);
+        if (appData[key]) {
+          hasEntries = true;
+          break;
+        }
+      }
+
+      if (!hasEntries) {
+        applyProfileRoutineToMonth();
+      }
+    }
+
+    /* =====================================================================
+       CUESTIONARIO & MODAL DE ONBOARDING
+       ===================================================================== */
+    function openOnboardingModal(allowClose) {
+      const closeBtn = document.getElementById('closeOnboardingBtn');
+      if (allowClose) {
+        closeBtn.classList.remove('hidden');
+      } else {
+        closeBtn.classList.add('hidden');
+      }
+
+      // Preseleccionar los valores del formulario
+      const form = document.getElementById('onboardingForm');
+      if (form.elements['pullupLevel']) form.elements['pullupLevel'].value = userProfile.pullupLevel || 'intermediate';
+      if (form.elements['goal']) form.elements['goal'].value = userProfile.goal || 'hypertrophy';
+      if (form.elements['frequency']) form.elements['frequency'].value = userProfile.frequency || '4';
+      if (form.elements['focus']) form.elements['focus'].value = userProfile.focus || 'standard';
+
+      // Checkboxes
+      const favCheckboxes = form.querySelectorAll('input[name="favExercises"]');
+      favCheckboxes.forEach(cb => {
+        cb.checked = (userProfile.favExercises || []).includes(cb.value);
+      });
+
+      document.getElementById('onboardingModal').classList.remove('hidden');
+    }
+
+    function closeOnboardingModal() {
+      document.getElementById('onboardingModal').classList.add('hidden');
+    }
+
+    function handleOnboardingSubmit(e) {
+      e.preventDefault();
+      const form = document.getElementById('onboardingForm');
+
+      const formData = new FormData(form);
+      const favs = [];
+      form.querySelectorAll('input[name="favExercises"]:checked').forEach(cb => favs.push(cb.value));
+
+      userProfile = {
+        pullupLevel: formData.get('pullupLevel') || 'intermediate',
+        goal: formData.get('goal') || 'hypertrophy',
+        frequency: formData.get('frequency') || '4',
+        favExercises: favs,
+        focus: formData.get('focus') || 'standard'
+      };
+
+      saveToLocalStorage();
+      updateProfileUIHeader();
+      applyProfileRoutineToMonth();
+      closeOnboardingModal();
+      showToast("¡Perfil actualizado y rutina regenerada!");
+    }
+
+    function updateProfileUIHeader() {
+      const lvlText = {
+        beginner: "Principiante (0-3 Dominadas)",
+        intermediate: "Intermedio (4-10 Dominadas)",
+        advanced: "Avanzado (10+ Dominadas)"
+      }[userProfile.pullupLevel] || "Intermedio";
+
+      document.getElementById('userLevelBadge').textContent = `Nivel: ${lvlText.split(' ')[0]}`;
+      document.getElementById('profileFrequencyBadge').textContent = `${userProfile.frequency} días / semana`;
+
+      const goalNames = {
+        hypertrophy: "Hipertrofia & Densidad Mesomorfa",
+        strength: "Fuerza Estricta & Control Corporal",
+        endurance: "Resistencia & Definición Metabólica"
+      };
+      document.getElementById('profileSummaryTitle').textContent = `Plan ${goalNames[userProfile.goal] || 'Personalizado'}`;
+
+      const focusNames = {
+        standard: "Volumen simétrico equilibrado (Tirón, Empuje y Tren Inferior).",
+        back_arms: "Énfasis prioritario en barra de dominadas, dorsales y flexores de codo.",
+        lower_core: "Énfasis prioritario en sentadillas búlgaras, pistols y core suspendido."
+      };
+      document.getElementById('profileSummaryDesc').textContent = focusNames[userProfile.focus] || "";
+
+      // Tags de preferencias
+      const tagContainer = document.getElementById('profileFavTags');
+      tagContainer.innerHTML = '';
+      (userProfile.favExercises || []).slice(0, 4).forEach(item => {
+        const span = document.createElement('span');
+        span.className = "text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700";
+        span.textContent = item.replace(/_/g, ' ');
+        tagContainer.appendChild(span);
+      });
+    }
+
+    /* =====================================================================
+       CALENDARIO MENSUAL
+       ===================================================================== */
+    const MONTH_NAMES = [
+      "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+      "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+    ];
+
+    function renderCalendar() {
+      const year = currentViewDate.getFullYear();
+      const monthIndex = currentViewDate.getMonth();
+      const library = getExerciseLibraryByProfile();
+
+      populateMonthIfEmpty(year, monthIndex);
+
+      document.getElementById('calendarTitle').textContent = `${MONTH_NAMES[monthIndex]} ${year}`;
+      document.getElementById('monthlyMonthLabel').textContent = `${MONTH_NAMES[monthIndex]} ${year}`;
+
+      const grid = document.getElementById('calendarDaysGrid');
+      grid.innerHTML = '';
+
+      const firstDayDate = new Date(year, monthIndex, 1);
+      let startDayOfWeek = firstDayDate.getDay();
+      startDayOfWeek = (startDayOfWeek === 0) ? 6 : startDayOfWeek - 1; // Ajuste lunes=0
+
+      const totalDays = new Date(year, monthIndex + 1, 0).getDate();
+      const today = new Date();
+      const todayKey = formatDateKey(today.getFullYear(), today.getMonth(), today.getDate());
+
+      // Celdas previas vacías
+      for (let i = 0; i < startDayOfWeek; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = "min-h-[85px] sm:min-h-[110px] rounded-xl bg-slate-900/10 border border-slate-900/40 opacity-20 pointer-events-none";
+        grid.appendChild(emptyCell);
+      }
+
+      // Días del mes
+      for (let day = 1; day <= totalDays; day++) {
+        const dateKey = formatDateKey(year, monthIndex, day);
+        const dayRecord = appData[dateKey] || {
+          routineType: 'rest',
+          status: 'rest',
+          completedExercises: {},
+          notes: ''
+        };
+
+        const routine = library[dayRecord.routineType] || library['pull'];
+        const isToday = (dateKey === todayKey);
+
+        const card = document.createElement('div');
+        card.className = `min-h-[85px] sm:min-h-[110px] p-2 sm:p-2.5 rounded-xl border transition-all duration-150 cursor-pointer flex flex-col justify-between group select-none ${getCellStyles(dayRecord.status, isToday)}`;
+        card.onclick = () => openDayModal(dateKey);
+
+        // Header celda
+        const head = document.createElement('div');
+        head.className = "flex items-center justify-between";
+
+        const dayNum = document.createElement('span');
+        dayNum.className = `text-xs sm:text-sm font-bold ${isToday ? 'w-6 h-6 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center font-black shadow-md shadow-emerald-500/30' : 'text-slate-300'}`;
+        dayNum.textContent = day;
+        head.appendChild(dayNum);
+
+        const statusIcon = document.createElement('div');
+        statusIcon.innerHTML = getStatusIconHtml(dayRecord.status);
+        head.appendChild(statusIcon);
+        card.appendChild(head);
+
+        // Badge de Rutina
+        const body = document.createElement('div');
+        body.className = "my-1";
+
+        const routineBadge = document.createElement('span');
+        routineBadge.className = `inline-block text-[10px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded-md border truncate max-w-full ${routine.badgeBg}`;
+        routineBadge.textContent = routine.name;
+        body.appendChild(routineBadge);
+
+        const completedCount = Object.values(dayRecord.completedExercises || {}).filter(Boolean).length;
+        if (completedCount > 0 && dayRecord.routineType !== 'rest') {
+          const cCount = document.createElement('div');
+          cCount.className = "text-[9px] sm:text-[10px] font-medium text-emerald-400 mt-1 flex items-center gap-1 font-mono";
+          cCount.innerHTML = `<i class="ph-bold ph-check"></i> ${completedCount} series`;
+          body.appendChild(cCount);
+        }
+        card.appendChild(body);
+
+        // Footer celda
+        const foot = document.createElement('div');
+        foot.className = "flex items-center justify-between text-[10px] text-slate-500";
+        if (dayRecord.notes && dayRecord.notes.trim() !== "") {
+          foot.innerHTML = `<span class="flex items-center gap-1 text-cyan-400 font-semibold" title="${dayRecord.notes}"><i class="ph-fill ph-note"></i> Nota</span>`;
+        } else {
+          foot.innerHTML = `<span></span>`;
+        }
+
+        const editHint = document.createElement('span');
+        editHint.className = "text-[10px] text-slate-400 opacity-0 group-hover:opacity-100 transition hidden sm:inline";
+        editHint.textContent = "Editar";
+        foot.appendChild(editHint);
+
+        card.appendChild(foot);
+        grid.appendChild(card);
+      }
+    }
+
+    function getCellStyles(status, isToday) {
+      let base = "border-slate-800 bg-slate-900/60 hover:border-slate-600 hover:bg-slate-800/80";
+
+      if (status === 'completed') {
+        base = "border-emerald-700/60 bg-emerald-950/30 hover:border-emerald-500 hover:bg-emerald-950/50";
+      } else if (status === 'missed') {
+        base = "border-rose-800/60 bg-rose-950/20 hover:border-rose-600 hover:bg-rose-950/40";
+      } else if (status === 'rest') {
+        base = "border-slate-800/80 bg-slate-900/40 text-slate-400 hover:border-indigo-800/60 hover:bg-indigo-950/20";
+      }
+
+      if (isToday) {
+        base += " ring-2 ring-emerald-400 ring-offset-2 ring-offset-slate-950";
+      }
+
+      return base;
+    }
+
+    function getStatusIconHtml(status) {
+      if (status === 'completed') {
+        return `<span class="text-emerald-400" title="Completado"><i class="ph-fill ph-check-circle text-base"></i></span>`;
+      }
+      if (status === 'missed') {
+        return `<span class="text-rose-400" title="Saltado / No pude"><i class="ph-fill ph-x-circle text-base"></i></span>`;
+      }
+      if (status === 'rest') {
+        return `<span class="text-indigo-400" title="Descanso"><i class="ph-fill ph-moon text-sm"></i></span>`;
+      }
+      return `<span class="text-slate-600" title="Pendiente"><i class="ph ph-circle text-sm"></i></span>`;
+    }
+
+    function changeMonth(delta) {
+      currentViewDate.setMonth(currentViewDate.getMonth() + delta);
+      renderCalendar();
+      updateMonthlyStats();
+    }
+
+    /* =====================================================================
+       MÉTRICAS & EVALUACIÓN MENSUAL
+       ===================================================================== */
+    function updateMonthlyStats() {
+      const year = currentViewDate.getFullYear();
+      const monthIndex = currentViewDate.getMonth();
+      const totalDays = new Date(year, monthIndex + 1, 0).getDate();
+
+      let completed = 0;
+      let missed = 0;
+      let rest = 0;
+      let pending = 0;
+
+      const routines = { pull: 0, push: 0, legs_core: 0, torso: 0, custom: 0 };
+      const notesList = [];
+
+      for (let day = 1; day <= totalDays; day++) {
+        const key = formatDateKey(year, monthIndex, day);
+        const item = appData[key];
+        if (!item) continue;
+
+        if (item.status === 'completed') {
+          completed++;
+          if (routines[item.routineType] !== undefined) {
+            routines[item.routineType]++;
+          } else {
+            routines.custom++;
+          }
+        } else if (item.status === 'missed') {
+          missed++;
+        } else if (item.status === 'rest') {
+          rest++;
+        } else {
+          pending++;
+        }
+
+        if (item.notes && item.notes.trim() !== '') {
+          notesList.push({ day, note: item.notes, routine: item.routineType, status: item.status });
+        }
+      }
+
+      // Actualizar contadores
+      document.getElementById('statCompletedDays').textContent = completed;
+      document.getElementById('statMissedDays').textContent = missed;
+      document.getElementById('statRestDays').textContent = rest;
+
+      document.getElementById('countPull').textContent = routines.pull;
+      document.getElementById('countPush').textContent = routines.push;
+      document.getElementById('countLegs').textContent = routines.legs_core;
+      document.getElementById('countTorso').textContent = routines.torso;
+
+      const plannedDone = completed + missed;
+      const adherence = plannedDone > 0 ? Math.round((completed / plannedDone) * 100) : 0;
+      document.getElementById('statAdherence').textContent = `${adherence}%`;
+      document.getElementById('statAdherenceSub').textContent = `${completed} de ${plannedDone} previstos`;
+
+      // Barra de progreso mensual (Meta según frecuencia elegida)
+      const weeklyDays = parseInt(userProfile.frequency || '4', 10);
+      const monthlyTargetSessions = weeklyDays * 4; // ~4 semanas
+      const progressPercent = Math.min(100, Math.round((completed / monthlyTargetSessions) * 100));
+      document.getElementById('progressBarFill').style.width = `${progressPercent}%`;
+      document.getElementById('progressBarLabel').textContent = `${completed} / ${monthlyTargetSessions} objetivo (${progressPercent}%)`;
+
+      // Diagnóstico para mesomorfo
+      renderMonthlyDiagnostic(completed, missed, adherence, routines);
+
+      // Renderizar notas del mes
+      renderNotesLog(notesList);
+    }
+
+    function renderMonthlyDiagnostic(completed, missed, adherence, routines) {
+      const el = document.getElementById('analysisRecommendation');
+      if (completed === 0 && missed === 0) {
+        el.innerHTML = "Aún no has registrado sesiones en este mes. Haz clic en el día actual para marcar tu entrenamiento y empezar a registrar tu progreso.";
+        return;
+      }
+
+      let text = "";
+      if (adherence >= 85) {
+        text += `<span class="text-emerald-400 font-bold">¡Adherencia sobresaliente (${adherence}%)!</span> Como mesomorfo, estás en la zona de máxima hipertrofia miofibrilar. Tu síntesis proteica está en su punto más eficiente. Si las dominadas o flexiones ya superan 12-15 repeticiones fluidas, añade variantes con pausa isométrica de 2 segundos en el pico de contracción.`;
+      } else if (adherence >= 65) {
+        text += `<span class="text-amber-400 font-bold">Consistencia moderada (${adherence}%).</span> Has mantenido la base, pero los días saltados (${missed}) reducen el volumen total. Intenta utilizar los días de 'Torso Completo' de 30 minutos cuando tengas poco tiempo para no perder el estímulo de la barra.`;
+      } else {
+        text += `<span class="text-rose-400 font-bold">Adherencia baja (${adherence}%).</span> Tienes ${missed} sesiones saltadas este mes. Te sugerimos ajustar tu perfil en 'Ajustar Perfil' a 3 días semanales para crear un hábito inquebrantable antes de subir a 4 o 5 días.`;
+      }
+
+      // Balance empuje vs tirón
+      const diff = Math.abs(routines.pull - routines.push);
+      if (diff > 2) {
+        text += `<br><span class="text-cyan-400 font-semibold mt-2 block">Aviso de simetría:</span> Has hecho ${routines.pull} de tirón vs ${routines.push} de empuje. Equilibra ambas para evitar rotación interna de hombros.`;
+      }
+
+      el.innerHTML = text;
+    }
+
+    function renderNotesLog(notesList) {
+      const container = document.getElementById('monthlyNotesLog');
+      if (notesList.length === 0) {
+        container.innerHTML = `<p class="text-slate-500 italic">No hay notas registradas todavía en este mes.</p>`;
+        return;
+      }
+
+      container.innerHTML = notesList.map(n => `
+        <div class="p-2.5 rounded-lg bg-slate-900 border border-slate-800 flex items-start justify-between gap-2">
+          <div>
+            <span class="font-bold text-slate-200">Día ${n.day}:</span>
+            <span class="text-slate-300 ml-1">${n.note}</span>
+          </div>
+          <span class="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 shrink-0">${n.routine}</span>
+        </div>
+      `).join('');
+    }
+
+    /* =====================================================================
+       MODAL DE EDICIÓN DEL DÍA
+       ===================================================================== */
+    function openDayModal(dateKey) {
+      activeModalDayKey = dateKey;
+      const [year, month, day] = dateKey.split('-').map(Number);
+      const library = getExerciseLibraryByProfile();
+
+      const dayRecord = appData[dateKey] || {
+        routineType: 'pull',
+        status: 'pending',
+        completedExercises: {},
+        notes: ''
+      };
+
+      activeModalStatus = dayRecord.status;
+
+      document.getElementById('modalDateBadge').textContent = `${day} DE ${MONTH_NAMES[month - 1].toUpperCase()} DE ${year}`;
+      document.getElementById('modalTitle').textContent = `Día ${day}: Registro y Modificación`;
+      document.getElementById('modalNotes').value = dayRecord.notes || '';
+      document.getElementById('routineSelect').value = dayRecord.routineType || 'pull';
+
+      updateModalStatusButtons();
+      renderModalExerciseList(dayRecord.routineType, dayRecord.completedExercises || {});
+
+      document.getElementById('dayModal').classList.remove('hidden');
+    }
+
+    function closeDayModal() {
+      document.getElementById('dayModal').classList.add('hidden');
+      activeModalDayKey = null;
+    }
+
+    function setDayStatus(status) {
+      activeModalStatus = status;
+      updateModalStatusButtons();
+    }
+
+    function updateModalStatusButtons() {
+      const statuses = ['completed', 'pending', 'missed', 'rest'];
+      statuses.forEach(s => {
+        const btn = document.getElementById(`btnStatus${s.charAt(0).toUpperCase() + s.slice(1)}`);
+        if (!btn) return;
+        if (s === activeModalStatus) {
+          btn.className = "status-btn p-2 rounded-xl border text-xs font-bold flex flex-col items-center justify-center gap-1 transition ring-2 ring-emerald-400 bg-slate-800 border-emerald-500 text-white shadow";
+        } else {
+          btn.className = "status-btn p-2 rounded-xl border border-slate-800 bg-slate-950/60 text-slate-400 text-xs font-semibold flex flex-col items-center justify-center gap-1 transition hover:bg-slate-800 hover:text-slate-200";
+        }
+      });
+    }
+
+    function onRoutineTypeChange(val) {
+      const dayRecord = appData[activeModalDayKey] || {};
+      renderModalExerciseList(val, dayRecord.completedExercises || {});
+    }
+
+    function renderModalExerciseList(routineType, completedMap) {
+      const container = document.getElementById('exerciseList');
+      container.innerHTML = '';
+      const library = getExerciseLibraryByProfile();
+      const routine = library[routineType] || library['pull'];
+
+      if (!routine.exercises || routine.exercises.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-400 italic">No hay ejercicios predefinidos para este tipo.</p>`;
+        return;
+      }
+
+      routine.exercises.forEach(ex => {
+        const isChecked = !!completedMap[ex.id];
+        const item = document.createElement('div');
+        item.className = `p-3 rounded-xl border flex items-start justify-between gap-3 transition ${
+          isChecked ? 'bg-emerald-950/30 border-emerald-700/60' : 'bg-slate-950 border-slate-800 hover:border-slate-700'
+        }`;
+
+        item.innerHTML = `
+          <div class="flex-1 space-y-0.5">
+            <span class="text-xs font-bold text-slate-200 block">${ex.name}</span>
+            <span class="text-[11px] font-semibold text-emerald-400 font-mono block">${ex.target}</span>
+            <p class="text-[11px] text-slate-400 leading-tight">${ex.tips}</p>
+          </div>
+          <label class="cursor-pointer flex items-center pt-0.5">
+            <input type="checkbox" data-ex-id="${ex.id}" ${isChecked ? 'checked' : ''} onchange="toggleExerciseItem(this)" class="w-5 h-5 rounded-md text-emerald-500 bg-slate-900 border-slate-700 focus:ring-emerald-400 focus:ring-offset-slate-950">
+          </label>
+        `;
+
+        container.appendChild(item);
+      });
+    }
+
+    function toggleExerciseItem(checkbox) {
+      const parent = checkbox.closest('.border');
+      if (checkbox.checked) {
+        parent.classList.add('bg-emerald-950/30', 'border-emerald-700/60');
+        parent.classList.remove('bg-slate-950', 'border-slate-800');
+        if (activeModalStatus === 'pending') {
+          setDayStatus('completed');
+        }
+      } else {
+        parent.classList.remove('bg-emerald-950/30', 'border-emerald-700/60');
+        parent.classList.add('bg-slate-950', 'border-slate-800');
+      }
+    }
+
+    /* Mover el entrenamiento de hoy a mañana */
+    function postponeCurrentWorkoutToTomorrow() {
+      if (!activeModalDayKey) return;
+      const [year, month, day] = activeModalDayKey.split('-').map(Number);
+      const currentDateObj = new Date(year, month - 1, day);
+      
+      const tomorrowObj = new Date(currentDateObj);
+      tomorrowObj.setDate(tomorrowObj.getDate() + 1);
+      const tomorrowKey = formatDateKey(tomorrowObj.getFullYear(), tomorrowObj.getMonth(), tomorrowObj.getDate());
+
+      const currentRoutine = document.getElementById('routineSelect').value;
+
+      // Marcamos hoy como saltado / descanso
+      activeModalStatus = 'missed';
+      updateModalStatusButtons();
+
+      // Programamos mañana con la rutina de hoy
+      const prevTomorrow = appData[tomorrowKey] || {};
+      appData[tomorrowKey] = {
+        routineType: currentRoutine,
+        status: 'pending',
+        completedExercises: prevTomorrow.completedExercises || {},
+        notes: (prevTomorrow.notes ? prevTomorrow.notes + ' ' : '') + `[Pospuesto del día ${day}]`
+      };
+
+      saveDayModal();
+      showToast(`Rutina movida exitosamente al día ${tomorrowObj.getDate()}`);
+    }
+
+    function saveDayModal() {
+      if (!activeModalDayKey) return;
+
+      const routineType = document.getElementById('routineSelect').value;
+      const notes = document.getElementById('modalNotes').value;
+
+      const completed = {};
+      document.querySelectorAll('#exerciseList input[type="checkbox"]').forEach(cb => {
+        const id = cb.getAttribute('data-ex-id');
+        if (id) completed[id] = cb.checked;
+      });
+
+      appData[activeModalDayKey] = {
+        routineType: routineType,
+        status: activeModalStatus,
+        completedExercises: completed,
+        notes: notes
+      };
+
+      saveToLocalStorage();
+      closeDayModal();
+      renderCalendar();
+      updateMonthlyStats();
+      showToast("Día actualizado correctamente");
+    }
+
+    function deleteDayRecord() {
+      if (!activeModalDayKey) return;
+      delete appData[activeModalDayKey];
+      saveToLocalStorage();
+      closeDayModal();
+      renderCalendar();
+      updateMonthlyStats();
+      showToast("Registro restablecido");
+    }
+
+    /* =====================================================================
+       GUÍA & UTILIDADES
+       ===================================================================== */
+    function openGuideModal() {
+      document.getElementById('guideModal').classList.remove('hidden');
+    }
+
+    function closeGuideModal() {
+      document.getElementById('guideModal').classList.add('hidden');
+    }
+
+    function showToast(msg) {
+      const el = document.getElementById('toastMessage');
+      document.getElementById('toastText').textContent = msg;
+      el.classList.remove('translate-y-24', 'opacity-0');
+      el.classList.add('translate-y-0', 'opacity-100');
+
+      setTimeout(() => {
+        el.classList.remove('translate-y-0', 'opacity-100');
+        el.classList.add('translate-y-24', 'opacity-0');
+      }, 2500);
+    }
+
+    function exportMonthlyReport() {
+      const year = currentViewDate.getFullYear();
+      const month = currentViewDate.getMonth();
+      const monthLabel = `${MONTH_NAMES[month]} ${year}`;
+
+      const completed = document.getElementById('statCompletedDays').textContent;
+      const missed = document.getElementById('statMissedDays').textContent;
+      const rest = document.getElementById('statRestDays').textContent;
+      const adherence = document.getElementById('statAdherence').textContent;
+      const pull = document.getElementById('countPull').textContent;
+      const push = document.getElementById('countPush').textContent;
+      const legs = document.getElementById('countLegs').textContent;
+
+      const text = `📊 INFORME DE ENTRENAMIENTO MESOMORFO - ${monthLabel}\n` +
+        `-----------------------------------------\n` +
+        `• Nivel de barra: ${userProfile.pullupLevel}\n` +
+        `• Meta: ${userProfile.goal}\n` +
+        `• Sesiones completadas: ${completed}\n` +
+        `• Sesiones no realizadas: ${missed}\n` +
+        `• Días de descanso: ${rest}\n` +
+        `• Tasa de adherencia: ${adherence}\n` +
+        `• Desglose muscular: Tirón (${pull}) | Empuje (${push}) | Pierna/Core (${legs})\n` +
+        `• Equipamiento: Barra de dominadas + Calistenia en suelo\n` +
+        `-----------------------------------------\n` +
+        `¡Generado por MesoCalisthenics Tracker!`;
+
+      const tempArea = document.createElement("textarea");
+      tempArea.value = text;
+      document.body.appendChild(tempArea);
+      tempArea.select();
+      try {
+        document.execCommand('copy');
+        showToast("¡Informe mensual copiado al portapapeles!");
+      } catch (err) {
+        showToast("Error al copiar texto");
+      }
+      document.body.removeChild(tempArea);
+    }
+
+    /* Teclas de acceso rápido */
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeDayModal();
+        closeGuideModal();
+        closeOnboardingModal();
+      }
+    });
+
+    /* Inicialización */
+    window.addEventListener('DOMContentLoaded', () => {
+      loadSavedData();
+      updateProfileUIHeader();
+      renderCalendar();
+      updateMonthlyStats();
+    });
+  </script>
+</body>
+</html>
